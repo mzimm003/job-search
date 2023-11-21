@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="210mm"
+   height="297mm"
+   viewBox="0 0 210 297"
+   version="1.1"
+   id="svg5"
+   inkscape:version="1.1.2 (0a00cf5339, 2022-02-04)"
+   sodipodi:docname="searchMachine.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview7"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:document-units="mm"
+     showgrid="false"
+     inkscape:zoom="2.5620932"
+     inkscape:cx="287.46027"
+     inkscape:cy="453.92573"
+     inkscape:window-width="1920"
+     inkscape:window-height="1043"
+     inkscape:window-x="990"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs2" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <rect
+       style="fill:none;stroke:#000000;stroke-width:0.3;stroke-linecap:round;stroke-dashoffset:45.3543;stroke-opacity:0.976518;paint-order:stroke fill markers"
+       id="rect866"
+       width="96.549881"
+       height="53.626789"
+       x="18.135811"
+       y="91.898537" />
+    <text
+       xml:space="preserve"
+       style="font-size:2.82223px;line-height:1.25;font-family:'Liberation Sans';-inkscape-font-specification:'Liberation Sans';letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;stroke-width:0.264583"
+       x="20.312641"
+       y="95.981827"
+       id="text10346"><tspan
+         sodipodi:role="line"
+         id="tspan10344"
+         style="stroke-width:0.264583"
+         x="20.312641"
+         y="95.981827">Company Profile</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:2.82223px;line-height:1.25;font-family:'Liberation Sans';-inkscape-font-specification:'Liberation Sans';letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;stroke-width:0.264583"
+       x="24.371426"
+       y="99.302261"
+       id="text20344"><tspan
+         sodipodi:role="line"
+         id="tspan20342"
+         style="stroke-width:0.264583"
+         x="24.371426"
+         y="99.302261">-Search(es) - list of dicts appropriate for generating potential jobs</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:2.82223px;line-height:1.25;font-family:'Liberation Sans';-inkscape-font-specification:'Liberation Sans';letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;stroke-width:0.264583"
+       x="28.574799"
+       y="102.21553"
+       id="text23870"><tspan
+         sodipodi:role="line"
+         id="tspan23868"
+         style="stroke-width:0.264583"
+         x="28.574799"
+         y="102.21553">-Method - Instructions for getting to job description and analyzing</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:2.82223px;line-height:1.25;font-family:'Liberation Sans';-inkscape-font-specification:'Liberation Sans';letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;stroke-width:0.264583"
+       x="25.23307"
+       y="106.04457"
+       id="text29944"><tspan
+         sodipodi:role="line"
+         id="tspan29942"
+         style="stroke-width:0.264583"
+         x="25.23307"
+         y="106.04457">-Job history - For tracking jobs already visited</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:2.82223px;line-height:1.25;font-family:'Liberation Sans';-inkscape-font-specification:'Liberation Sans';letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;stroke-width:0.264583"
+       x="30.942192"
+       y="108.75416"
+       id="text37208"><tspan
+         sodipodi:role="line"
+         id="tspan37206"
+         style="stroke-width:0.264583"
+         x="30.942192"
+         y="108.75416">- Description</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:2.82223px;line-height:1.25;font-family:'Liberation Sans';-inkscape-font-specification:'Liberation Sans';letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;stroke-width:0.264583"
+       x="31.34976"
+       y="111.64177"
+       id="text40106"><tspan
+         sodipodi:role="line"
+         id="tspan40104"
+         style="stroke-width:0.264583"
+         x="31.34976"
+         y="111.64177">- Resume if applicable</tspan></text>
+  </g>
+</svg>
