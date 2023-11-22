@@ -10,6 +10,12 @@ class Transform:
         self.inFile:str | Path = inFile
         self.outFile:str | Path = outFile
 
+    @staticmethod
+    def HTMLTextToPlain(text:str):
+        plain = (text
+                 .replace('+',' '))
+        return plain
+
     def requestHeaderToRequestParamDict(
             self,
             ):
