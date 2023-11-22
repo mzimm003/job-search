@@ -21,7 +21,7 @@ class GUI:
         self.primaryWindow:sg.Window = None
         self.portfolio:Portfolio = portfolio
 
-    def __newWindow(self, name, layout, modal=False, enable_close_attempted_event=False, resizable=False):
+    def __newWindow(self, name, layout, modal=False, enable_close_attempted_event=False, resizable=False, modalEvents={}):
         loc = (None, None)
         if self.primaryWindow:
             loc = self.primaryWindow.current_location()
@@ -36,6 +36,8 @@ class GUI:
         if modal:
             while True:
                 e, v = w.read()
+                if e in modalEvents:
+                    modalEvents[e](v)
                 if e == "OK" or e == sg.WIN_CLOSED:
                     break
             w.close()
@@ -156,6 +158,12 @@ class GUI:
             GUI.PEEKLINKS:partial(self.peekLinks, window=w)
             }
 
+    def searchPhraseWindow(self, search):
+        lyt = [
+            [sg.Multiline(search,)]
+        ]
+        self.__newWindow('Search Phrase',,modal=True)
+
     def peekLinks(self, values, window:sg.Window):
         if values['SEARCH'] == '':
             self.errorMsg("Must fill the search parameter 'Header'")
@@ -169,6 +177,7 @@ class GUI:
             self.errorMsg("Must fill the search parameters, 'Header' and 'Job Indetifying Keyword'")
         else:
             search_header = Transform().GUIRequestHeaderToRequestParamDict(values['SEARCH'])
+            self.searchPhraseWindow(values['SEARCH'])
             search = Search.byHTML(searchReq=search_header, jobKeyId=values['KEYID'], descKey=values['HTMLKEY'])
             if profile.name != GUI.NEWPROFILE:
                 profile.defineSearch(search)

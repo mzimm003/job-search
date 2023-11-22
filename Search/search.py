@@ -31,10 +31,12 @@ class Search:
         '''
         return ...string links?... to job postings
         '''
-        jobs = []
+        jobs = set()
         for srchPhrs in self.searchPhrases:
-            
-        return self.runMethod(self.listJobsMethod, self.searchReq)
+            reqDict = dict(self.searchReq)
+            reqDict['url'] = reqDict['url'].format(srchPhrs)
+            jobs.update(self.runMethod(self.listJobsMethod, self.searchReq))
+        return list(jobs)
     
     def getJobDesc(self, link) -> List[str]:
         reqDict = {
