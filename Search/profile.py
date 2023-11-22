@@ -31,7 +31,7 @@ class Profile:
 
     @classmethod
     def bySearch(cls, search:Search):
-        return cls(name=search.orgName, searches=search)
+        return cls(name=search.orgName, search=search)
 
     def defineSearch(self, search:Search):
         self.search = search

@@ -17,7 +17,9 @@ class Search:
             listJobsMethod:List[Callable] = [],
             getJobDescMethod:List[Callable] = [],
             searchReq:Dict = {},
-            searchPhrases:List[str] = '',
+            searchPhrases:List[str] = [],
+            jobKeyId:str = '',
+            descKey:str = '',
             retType:str = 'json'
             ) -> None:
         self.orgName = orgName
@@ -26,6 +28,8 @@ class Search:
         self.searchReq = searchReq
         self.searchPhrases = searchPhrases
         self.retType = retType
+        self.jobKeyId = jobKeyId
+        self.descKey = descKey
     
     def listJobs(self) -> List[str]:
         '''
@@ -57,6 +61,9 @@ class Search:
 
     def addSearchPhrase(self, phrase):
         self.searchPhrases.append(phrase)
+    
+    def setSearchPhrases(self, phrases:List[str]):
+        self.searchPhrases = phrases
 
     @classmethod
     def byJSON(
@@ -79,14 +86,16 @@ class Search:
         obj = cls()
         orgName = searchReq['url'].lstrip('https://')
         obj.orgName = orgName[:orgName.find('/')]
+        obj.jobKeyId = jobKeyId
         obj.listJobsMethod = [
             partial(request),
-            partial(getlinks, keyword=jobKeyId),
+            partial(getlinks, keyword=obj.jobKeyId),
             ]
         obj.searchReq = searchReq
+        obj.descKey = descKey
         obj.getJobDescMethod = [
             partial(request),
-            partial(getDesc, descKey=descKey)
+            partial(getDesc, descKey=obj.descKey)
             ]
         obj.retType = 'html'
         return obj
