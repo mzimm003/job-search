@@ -13,3 +13,7 @@ Sec-Fetch-Mode: navigate
 Sec-Fetch-Site: same-origin
 Sec-Fetch-User: ?1
 TE: trailers
+
+current-openings
+
+article.node--type-job-opportunity
