@@ -12,10 +12,12 @@ from Search.utility import (
 class Search:
     def __init__(
             self,
+            orgName:str = '',
             method:List[Callable] = [],
             searchReq:Dict = {},
             retType:str = 'json'
             ) -> None:
+        self.orgName = orgName
         self.method = method
         self.searchReq = searchReq
         self.retType = retType
@@ -53,6 +55,8 @@ class Search:
         jobKeyId = '',
         ):
         obj = cls()
+        orgName = searchReq['url'].lstrip('https://')
+        obj.orgName = orgName[:orgName.find('/')]
         obj.method = [
                 partial(request, searchReq=searchReq),
                 partial(getlinks, keyword=jobKeyId),
