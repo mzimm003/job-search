@@ -22,10 +22,10 @@ class Profile:
     def __init__(
             self,
             name:str,
-            searches:List[Search] = [],
+            search:Search = [],
             ) -> None:
         self.name = name
-        self.searches : List[Search] = searches
+        self.search : Search = search
         self.currentPosts : Dict[str,'Posting'] = {}
         self.historicalPosts : Dict[str,'Posting'] = {}
 
@@ -33,18 +33,18 @@ class Profile:
     def bySearch(cls, search:Search):
         return cls(name=search.orgName, searches=search)
 
-    def addSearch(self, search:Search):
-        self.searches.append(search)
+    def defineSearch(self, search:Search):
+        self.search = search
     
     def gatherPosts(self):
         self.currentPosts = []
-        for s in self.searches:
-            jobs = s.getJobList()
+        for s in self.search.searchPhrases:
+            jobs = s.listJobs()
             for job in jobs:
                 self.currentPosts[job] = Posting.byLink(job)
     
-    def getSearches(self):
-        return self.searches
+    def getSearch(self):
+        return self.search
 
     def processPosts(self):
         for cp in self.currentPosts:

@@ -57,8 +57,8 @@ class GUI:
     ALLNEWJOBS = 'Get All New Jobs'
     OPENPROFILE = "Access Profile"
     @staticmethod
-    def MAINWINDOWLAYOUT(profiles):    
-        profile_panel_layout = sg.Col([        
+    def MAINWINDOWLAYOUT(profiles):
+        profile_panel_layout = sg.Col([
             [sg.Text("Profiles")],
             [sg.Listbox([k for k in profiles.keys()], expand_x=True, expand_y=True, key="PROFILES")],
             [sg.Button(GUI.OPENPROFILE)]
@@ -112,25 +112,31 @@ class GUI:
         return 'CLOSEALL'
 
     PEEKLINKS = "Peek Links"
-    ADDSEARCH = "Add Search"
+    ADDSEARCH = "Commit Search"
     @staticmethod
     def PROFILESWINDOWLAYOUT():
         header_panel_layout = sg.Col([
-            [sg.Text("Header")],
+            [sg.Text("Sample Header")],
             [sg.Multiline(key="SEARCH", expand_x=True, expand_y=True)],
-            [sg.Text("Job Identifying Keyword")],
-            [sg.In(key="KEYID", expand_x=True)],
             ], expand_x=True, expand_y=True)
         link_peak_layout = sg.Col([
             [sg.Text("Job Identifying Keyword Help")],
             [sg.Listbox([], expand_x=True, expand_y=True, key="LINKS")],
             [sg.Button(GUI.PEEKLINKS)]
             ], expand_x=True, expand_y=True)
+        search_spec_layout = sg.Col([
+            [sg.Col([[sg.Text("Link Keyword Identifying Jobs")],
+                     [sg.Text("Job Desc HTML element")]]),
+             sg.Col([[sg.In(key="KEYID", expand_x=True)],
+                     [sg.In(key="HTMLKEY", default_text='type.class; e.g. article.node--type-job-opportunity', expand_x=True)],
+                     ])],
+            ], expand_x=True, expand_y=True)
         search_panel_layout = sg.Col([
             [sg.Text("Search Parameters")],
             [header_panel_layout, link_peak_layout],
-            [sg.Button(GUI.ADDSEARCH)]
-        ], expand_x=True, expand_y=True)
+            [search_spec_layout],
+            [sg.Button(GUI.ADDSEARCH)],
+            ], expand_x=True, expand_y=True)
         
 
         layout_l = [[search_panel_layout]]
@@ -159,13 +165,13 @@ class GUI:
             window['LINKS'].update([l for l in search.html.links])
 
     def addSearch(self, values, window:sg.Window, profile:Profile):
-        if values['SEARCH'] == '' or values['KEYID'] == '':
+        if '' in {values['SEARCH'], values['KEYID'], values['HTMLKEY']}:
             self.errorMsg("Must fill the search parameters, 'Header' and 'Job Indetifying Keyword'")
         else:
             search_header = Transform().GUIRequestHeaderToRequestParamDict(values['SEARCH'])
-            search = Search.byHTML(searchReq=search_header, jobKeyId=values['KEYID'])
+            search = Search.byHTML(searchReq=search_header, jobKeyId=values['KEYID'], descKey=values['HTMLKEY'])
             if profile.name != GUI.NEWPROFILE:
-                profile.addSearch(search)
+                profile.defineSearch(search)
             else:
                 newProf = Profile.bySearch(search)
                 self.portfolio.addProfile(newProf)
