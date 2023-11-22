@@ -7,7 +7,7 @@
    viewBox="0 0 210 297"
    version="1.1"
    id="svg5"
-   inkscape:version="1.3.1 (91b66b0783, 2023-11-16)"
+   inkscape:version="1.1.2 (0a00cf5339, 2022-02-04)"
    sodipodi:docname="searchMachine.svg"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
@@ -23,18 +23,19 @@
      inkscape:pagecheckerboard="0"
      inkscape:document-units="mm"
      showgrid="false"
-     inkscape:zoom="1.2810466"
-     inkscape:cx="644.39498"
-     inkscape:cy="759.92552"
-     inkscape:window-width="1366"
-     inkscape:window-height="705"
-     inkscape:window-x="-8"
-     inkscape:window-y="-8"
+     inkscape:zoom="0.90583674"
+     inkscape:cx="203.67909"
+     inkscape:cy="758.96679"
+     inkscape:window-width="1920"
+     inkscape:window-height="958"
+     inkscape:window-x="0"
+     inkscape:window-y="1107"
      inkscape:window-maximized="1"
      inkscape:current-layer="layer1"
      inkscape:showpageshadow="2"
      inkscape:deskcolor="#d1d1d1"
-     inkscape:connector-spacing="0" />
+     inkscape:connector-spacing="0"
+     inkscape:snap-global="false" />
   <defs
      id="defs2">
     <rect
@@ -133,8 +134,8 @@
        id="rect1-5"
        width="103.06188"
        height="66.091789"
-       x="143.65958"
-       y="132.67665" />
+       x="-97.202057"
+       y="221.91461" />
     <rect
        style="fill:#ffffff;stroke:#000000;stroke-width:0.5;stroke-linecap:square"
        id="rect1-0"
@@ -145,135 +146,135 @@
     <text
        xml:space="preserve"
        style="font-size:4.23333px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
-       x="23.958273"
-       y="173.69748"
+       x="-92.33593"
+       y="228.83836"
        id="text1"><tspan
          sodipodi:role="line"
          id="tspan1"
          style="stroke-width:0.264583"
-         x="23.958273"
-         y="173.69748">Search Panel</tspan></text>
+         x="-92.33593"
+         y="228.83836">Search Panel</tspan></text>
     <rect
        style="fill:none;stroke:#000000;stroke-width:0.499999;stroke-linecap:square"
        id="rect2"
        width="41.926983"
        height="61.961056"
-       x="21.686369"
-       y="168.94714" />
+       x="-94.607841"
+       y="224.08803" />
     <text
        xml:space="preserve"
        style="font-size:4.23333px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
-       x="24.990959"
-       y="178.86092"
+       x="-91.303246"
+       y="234.0018"
        id="text2"><tspan
          sodipodi:role="line"
          id="tspan2"
          style="stroke-width:0.264583"
-         x="24.990959"
-         y="178.86092">Header</tspan></text>
+         x="-91.303246"
+         y="234.0018">Header</tspan></text>
     <rect
        style="fill:none;stroke:#000000;stroke-width:0.5;stroke-linecap:square"
        id="rect3"
        width="21.980864"
        height="26.524675"
-       x="23.217064"
-       y="174.5573" />
+       x="-93.077141"
+       y="229.69818" />
     <text
        xml:space="preserve"
        style="font-size:4.23333px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
-       x="25.610569"
-       y="207.51535"
+       x="-90.683632"
+       y="262.65622"
        id="text3"><tspan
          sodipodi:role="line"
          id="tspan3"
          style="stroke-width:0.264583"
-         x="25.610569"
-         y="207.51535">keyword</tspan></text>
+         x="-90.683632"
+         y="262.65622">keyword</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:4.23333px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
-       x="48.949234"
-       y="178.57893"
+       x="-67.344978"
+       y="233.71982"
        id="text4"><tspan
          sodipodi:role="line"
          id="tspan4"
          style="stroke-width:0.264583"
-         x="48.949234"
-         y="178.57893">links</tspan></text>
+         x="-67.344978"
+         y="233.71982">links</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:4.23333px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
-       x="24.990959"
-       y="222.23366"
+       x="-91.303246"
+       y="277.37454"
        id="text5"><tspan
          sodipodi:role="line"
          id="tspan5"
          style="stroke-width:0.264583"
-         x="24.990959"
-         y="222.23366">add</tspan><tspan
+         x="-91.303246"
+         y="277.37454">add</tspan><tspan
          sodipodi:role="line"
          style="stroke-width:0.264583"
-         x="24.990959"
-         y="227.52531"
+         x="-91.303246"
+         y="282.6662"
          id="tspan6">search</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:4.23333px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
-       x="43.579277"
-       y="221.40752"
+       x="-72.714928"
+       y="276.5484"
        id="text7"><tspan
          sodipodi:role="line"
          id="tspan7"
          style="stroke-width:0.264583"
-         x="43.579277"
-         y="221.40752">add</tspan><tspan
+         x="-72.714928"
+         y="276.5484">add</tspan><tspan
          sodipodi:role="line"
          style="stroke-width:0.264583"
-         x="43.579277"
-         y="226.69917"
+         x="-72.714928"
+         y="281.84006"
          id="tspan9">profile</tspan></text>
     <rect
        style="fill:none;stroke:#000000;stroke-width:0.499999;stroke-linecap:square"
        id="rect10"
        width="21.273296"
        height="5.3699579"
-       x="23.545202"
-       y="203.59116" />
+       x="-92.749001"
+       y="258.73203" />
     <ellipse
        style="fill:none;stroke:#000000;stroke-width:0.499999;stroke-linecap:square"
        id="path10"
-       cx="30.877256"
-       cy="223.47287"
+       cx="-85.416954"
+       cy="278.61374"
        rx="7.5385952"
        ry="5.9895682" />
     <ellipse
        style="fill:none;stroke:#000000;stroke-width:0.499999;stroke-linecap:square"
        id="path11"
-       cx="49.465576"
-       cy="223.26633"
+       cx="-66.828636"
+       cy="278.4072"
        rx="7.9516687"
        ry="5.1634212" />
     <text
        xml:space="preserve"
        style="font-size:4.23333px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
-       x="48.793995"
-       y="201.11563"
+       x="-67.500206"
+       y="256.2565"
        id="text11"><tspan
          sodipodi:role="line"
          id="tspan11"
          style="stroke-width:0.264583"
-         x="48.793995"
-         y="201.11563">peak</tspan><tspan
+         x="-67.500206"
+         y="256.2565">peak</tspan><tspan
          sodipodi:role="line"
          style="stroke-width:0.264583"
-         x="48.793995"
-         y="206.40729"
+         x="-67.500206"
+         y="261.54816"
          id="tspan12">links</tspan></text>
     <ellipse
        style="fill:none;stroke:#000000;stroke-width:0.518314;stroke-linecap:square"
        id="path12"
-       cx="53.95742"
-       cy="202.76793"
+       cx="-62.336784"
+       cy="257.90881"
        rx="5.7738743"
        ry="5.567338" />
     <rect
@@ -281,55 +282,44 @@
        id="rect12"
        width="14.691144"
        height="21.300322"
-       x="46.87035"
-       y="174.84775" />
+       x="-69.423851"
+       y="229.98863" />
     <rect
        style="fill:none;stroke:#000000;stroke-width:0.499999;stroke-linecap:square"
        id="rect13"
-       width="55.76495"
-       height="26.230179"
-       x="66.711403"
-       y="169.15367" />
+       width="41.388729"
+       height="63.611389"
+       x="22.14617"
+       y="167.77684" />
     <text
        xml:space="preserve"
        style="font-size:4.23333px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
-       x="70.015991"
-       y="172.45827"
+       x="25.450758"
+       y="171.08142"
        id="text13"><tspan
          sodipodi:role="line"
          id="tspan13"
          style="stroke-width:0.264583"
-         x="70.015991"
-         y="172.45827">Profile Panel</tspan></text>
+         x="25.450758"
+         y="171.08142">Profile Panel</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:4.23333px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
-       x="69.396385"
-       y="176.589"
+       x="24.831152"
+       y="175.21216"
        id="text14"><tspan
          sodipodi:role="line"
          id="tspan14"
          style="stroke-width:0.264583"
-         x="69.396385"
-         y="176.589">Profiles</tspan></text>
+         x="24.831152"
+         y="175.21216">Profiles</tspan></text>
     <rect
        style="fill:none;stroke:#000000;stroke-width:0.499999;stroke-linecap:square"
        id="rect14"
        width="25.197496"
        height="21.273296"
-       x="68.595886"
-       y="172.87134" />
-    <text
-       xml:space="preserve"
-       style="font-size:4.23333px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
-       x="99.137688"
-       y="176.79553"
-       id="text15"><tspan
-         sodipodi:role="line"
-         id="tspan15"
-         style="stroke-width:0.264583"
-         x="99.137688"
-         y="176.79553">View Prof</tspan></text>
+       x="24.030653"
+       y="171.49449" />
     <rect
        style="fill:none;stroke:#000000;stroke-width:0.499999;stroke-linecap:square"
        id="rect15"
@@ -421,19 +411,6 @@
        inkscape:connector-curvature="0"
        inkscape:connection-start="#path18"
        inkscape:connection-end="#rect1-0" />
-    <ellipse
-       style="fill:none;stroke:#000000;stroke-width:0.499999;stroke-linecap:square"
-       id="path15"
-       cx="109.5678"
-       cy="175.56914"
-       rx="11.462795"
-       ry="2.5817106" />
-    <path
-       style="fill:none;fill-rule:evenodd;stroke:#ff0000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="m 121.17188,175.56914 22.44968,-3.92055"
-       id="path21"
-       inkscape:connector-type="polyline"
-       inkscape:connector-curvature="0" />
     <rect
        style="fill:none;stroke:#000000;stroke-width:0.5;stroke-linecap:square"
        id="rect21"
@@ -658,5 +635,42 @@
          style="stroke-width:0.264583"
          x="164.40334"
          y="208.60222">Filter</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:4.23333px;line-height:1.25;font-family:'Liberation Sans';-inkscape-font-specification:'Liberation Sans';letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;stroke-width:0.264583"
+       x="-44.118961"
+       y="229.21619"
+       id="text9562"><tspan
+         sodipodi:role="line"
+         id="tspan9560"
+         style="font-size:4.23333px;stroke-width:0.264583"
+         x="-44.118961"
+         y="229.21619">Jobs</tspan></text>
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#ff0000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="M 42.467331,221.41258 5.8598251,235.34641"
+       id="path49774"
+       inkscape:connector-type="polyline"
+       inkscape:connector-curvature="0"
+       inkscape:connection-start="#path15"
+       inkscape:connection-end="#rect1-5" />
+    <ellipse
+       style="fill:#ffffff;stroke:#000000;stroke-width:0.499999;stroke-linecap:square"
+       id="path15"
+       cx="42.467331"
+       cy="221.41258"
+       rx="11.462795"
+       ry="2.5817106" />
+    <text
+       xml:space="preserve"
+       style="font-size:4.23333px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       x="32.83535"
+       y="222.90302"
+       id="text15"><tspan
+         sodipodi:role="line"
+         id="tspan15"
+         style="stroke-width:0.264583"
+         x="32.83535"
+         y="222.90302">View Prof</tspan></text>
   </g>
 </svg>
