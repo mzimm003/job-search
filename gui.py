@@ -291,7 +291,7 @@ def JOBSWINDOWLAYOUT():
 
 def main():
     port:Portfolio = Portfolio()
-    port.addProfile(Profile(GUI.NEWPROFILE))
+    port.addProfile(Profile(GUI.NEWPROFILE, Search(descKey='type.class; e.g. article.node--type-job-opportunity')))
     if Path('Search/profiles.pkl').exists():
         with open('Search/profiles.pkl', 'rb') as f:
             port = pickle.load(f)
