@@ -15,19 +15,19 @@ class Search:
     def __init__(
             self,
             orgName:str = '',
-            listJobsMethod:List[Callable] = [],
-            getJobDescMethod:List[Callable] = [],
-            searchReq:Dict = {},
-            searchPhrases:List[str] = [],
+            listJobsMethod:List[Callable] = None,
+            getJobDescMethod:List[Callable] = None,
+            searchReq:Dict = None,
+            searchPhrases:List[str] = None,
             jobKeyId:str = '',
             descKey:str = '',
             retType:str = 'json'
             ) -> None:
         self.orgName = orgName
-        self.listJobsMethod = listJobsMethod
-        self.getJobDescMethod = getJobDescMethod
-        self.searchReq = searchReq
-        self.searchPhrases = searchPhrases
+        self.listJobsMethod = [] if listJobsMethod is None else listJobsMethod
+        self.getJobDescMethod = [] if getJobDescMethod is None else getJobDescMethod
+        self.searchReq = {} if searchReq is None else searchReq
+        self.searchPhrases = [] if searchPhrases is None else searchPhrases
         self.retType = retType
         self.jobKeyId = jobKeyId
         self.descKey = descKey
@@ -80,7 +80,7 @@ class Search:
     @classmethod
     def byHTML(
         cls,
-        searchReq:Dict = {},
+        searchReq:Dict,
         jobKeyId = '',
         descKey = '',
         ):
