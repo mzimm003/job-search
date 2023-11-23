@@ -9,6 +9,7 @@ from Search.utility import (
     getlinks,
     getDesc
 )
+from Search.transforms import Transform
 
 class Search:
     def __init__(
@@ -38,17 +39,17 @@ class Search:
         jobs = set()
         for srchPhrs in self.searchPhrases:
             reqDict = dict(self.searchReq)
-            reqDict['url'] = reqDict['url'].format(srchPhrs)
-            jobs.update(self.runMethod(self.listJobsMethod, self.searchReq))
+            reqDict['url'] = reqDict['url'].format(Transform.PlainTextToHTML(srchPhrs))
+            jobs.update(self.runMethod(self.listJobsMethod, reqDict))
         return list(jobs)
     
     def getJobDesc(self, link) -> List[str]:
         reqDict = {
             'method':'GET',
             'url':link,
-            'headers':'{"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/119.0"}'
+            'headers':{"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/119.0"}
             }
-        return self.runMethod(self.listJobsMethod, reqDict)
+        return self.runMethod(self.getJobDescMethod, reqDict)
 
     def runMethod(self, method, reqDict):
         x = None
@@ -95,7 +96,7 @@ class Search:
         obj.descKey = descKey
         obj.getJobDescMethod = [
             partial(request),
-            partial(getDesc, descKey=obj.descKey)
+            partial(getDesc, keyword=obj.descKey)
             ]
         obj.retType = 'html'
         return obj

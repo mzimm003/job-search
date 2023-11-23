@@ -22,7 +22,7 @@ class Profile:
     def __init__(
             self,
             name:str,
-            search:Search = [],
+            search:Search = Search(),
             ) -> None:
         self.name = name
         self.search : Search = search
@@ -37,11 +37,12 @@ class Profile:
         self.search = search
     
     def gatherPosts(self):
-        self.currentPosts = []
-        for s in self.search.searchPhrases:
-            jobs = s.listJobs()
-            for job in jobs:
-                self.currentPosts[job] = Posting.byLink(job)
+        self.currentPosts = {}
+        jobs = self.search.listJobs()
+        for job in jobs:
+            if not job in self.historicalPosts:
+                self.currentPosts[job] = Posting(job, self.search.getJobDesc(job))
+        self.historicalPosts.update(self.currentPosts)
     
     def getSearch(self):
         return self.search
@@ -54,9 +55,11 @@ class Profile:
 class Posting:
     def __init__(
             self,
-            link,
+            link:str,
+            desc:str,
             ) -> None:
         self.link = link
+        self.desc = desc
     
     @classmethod
     def byLink(cls, link):
