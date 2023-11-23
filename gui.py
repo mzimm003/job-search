@@ -96,7 +96,8 @@ class GUI:
     
     def openProfile(self, values):
         for p in values['PROFILES']:
-            self.profileWindow(p)
+            w = self.profileWindow(p)
+            self.refreshSearchConfigVisual(w, self.portfolio.profiles[p])
     
     def endProgram(self, values):
         lyt = [
@@ -123,11 +124,14 @@ class GUI:
     KEYID = "KEYID"
     HTMLKEY = "HTMLKEY"
     SEARCHPHRASES = "SEARCHPHRASES"
+    JOBSTATUSUPDATE = "JOBSTATUSUPDATE"
+    GETCURRENTJOBS = "Find Current Jobs"
+    JOBSDETAIL = "View Jobs"
     @staticmethod
     def PROFILESWINDOWLAYOUT():
         header_panel_layout = sg.Col([
             [sg.Text("Sample Header")],
-            [sg.Multiline(key=GUI.MLSEARCHHEADER, size=(100,20), expand_x=True, expand_y=True)],
+            [sg.Multiline(key=GUI.MLSEARCHHEADER, size=(75,20), expand_x=True, expand_y=True)],
             ], expand_x=True, expand_y=True)
         link_peak_layout = sg.Col([
             [sg.Text("Job Identifying Keyword Help")],
@@ -152,14 +156,21 @@ class GUI:
             [search_phrase_layout]
             ], expand_x=True, expand_y=True)
         
+        job_panel_layout = sg.Col([
+            [sg.Text('Jobs')],
+            [sg.Button(GUI.GETCURRENTJOBS)],
+            [sg.Multiline(size=(70,20),key=GUI.JOBSTATUSUPDATE)],
+            [sg.Button(GUI.JOBSDETAIL)]
+        ], expand_x=True, expand_y=True)
 
         layout_l = [[search_panel_layout]]
         layout_c = [[]]
-        layout_r = [[]]
+        layout_r = [[job_panel_layout]]
 
         return [
             [
                 sg.Col(layout_l, expand_x=True, expand_y=True),
+                sg.Col(layout_r, expand_x=True, expand_y=True),
             ]
         ]
             
@@ -168,10 +179,15 @@ class GUI:
         self.windows[w] = {
             GUI.ADDSEARCH:partial(self.addSearch, window=w, profile=self.portfolio.profiles[profile]),
             GUI.PEEKLINKS:partial(self.peekLinks, window=w),
-            GUI.COMMITPHRASES:partial(self.commitPhrases, window=w, profile=self.portfolio.profiles[profile])
+            GUI.COMMITPHRASES:partial(self.commitPhrases, window=w, profile=self.portfolio.profiles[profile]),
+            GUI.GETCURRENTJOBS:partial(self.getCurrentJobs, window=w, profile=self.portfolio.profiles[profile]),
             }
         return w
-    
+
+    def getCurrentJobs(self, values, window:sg.Window, profile:Profile):
+        profile.gatherPosts()
+        window[GUI.JOBSTATUSUPDATE].update('{} new jobs found:\n{}'.format(len(profile.currentPosts), '\n'.join(profile.currentPosts.keys())))
+
     def commitPhrases(self, values, window:sg.Window, profile:Profile):
         srchPhrss = values[GUI.SEARCHPHRASES].split('\n')
         profile.search.setSearchPhrases(srchPhrss)

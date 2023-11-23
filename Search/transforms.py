@@ -15,6 +15,12 @@ class Transform:
         plain = (text
                  .replace('+',' '))
         return plain
+    
+    @staticmethod
+    def PlainTextToHTML(text:str):
+        plain = (text
+                 .replace(' ','+'))
+        return plain
 
     def requestHeaderToRequestParamDict(
             self,
