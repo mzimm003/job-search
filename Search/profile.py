@@ -3,10 +3,11 @@ from typing import (
     Dict
 )
 from Search.search import Search
+import enum
 
 class Portfolio:
     def __init__(self) -> None:
-        self.profiles:Dict[str, Profile] = {}
+        self.profiles:Dict[str, 'Profile'] = {}
         self.currentPosts = {}
         self.historicalPosts = {}
     
@@ -16,7 +17,14 @@ class Portfolio:
     def getNewJobs(self):
         for n, p in self.profiles.items():
             p.gatherPosts()
-            #TODO
+            self.currentPosts.update(p.currentPosts)
+            self.historicalPosts.update(p.historicalPosts)
+
+    def getNewJobsByProfile(self, prof:'Profile'):
+        prof.gatherPosts()
+        self.currentPosts.update(prof.currentPosts)
+        self.historicalPosts.update(prof.historicalPosts)
+        
 
 class Profile:
     def __init__(
@@ -28,6 +36,7 @@ class Profile:
         self.search : Search = search
         self.currentPosts : Dict[str,'Posting'] = {}
         self.historicalPosts : Dict[str,'Posting'] = {}
+        self.jobCount = 0
 
     @classmethod
     def bySearch(cls, search:Search):
@@ -41,7 +50,8 @@ class Profile:
         jobs = self.search.listJobs()
         for job in jobs:
             if not job in self.historicalPosts:
-                self.currentPosts[job] = Posting(job, self.search.getJobDesc(job))
+                self.currentPosts[self.name+'-'+str(self.jobCount)] = Posting(job, self.search.getJobDesc(job))
+                self.jobCount += 1
         self.historicalPosts.update(self.currentPosts)
     
     def getSearch(self):
@@ -52,7 +62,12 @@ class Profile:
             pass
 
 
+class STATUS(enum.Enum):
+    Pending = enum.auto()
+    Applied = enum.auto()
+    Ignored = enum.auto()
 class Posting:
+    STATUS = STATUS
     def __init__(
             self,
             link:str,
@@ -60,11 +75,14 @@ class Posting:
             ) -> None:
         self.link = link
         self.desc = desc
+        self.status = Posting.STATUS.Pending
     
     @classmethod
     def byLink(cls, link):
         pass
 
+    def getStatus(self):
+        return self.status.name
 
     def getDesc(self):
         pass
