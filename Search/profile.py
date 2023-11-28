@@ -61,13 +61,11 @@ class Profile:
         for cp in self.currentPosts:
             pass
 
-
-class STATUS(enum.Enum):
-    Pending = enum.auto()
-    Applied = enum.auto()
-    Ignored = enum.auto()
 class Posting:
-    STATUS = STATUS
+    class STATUS(enum.Enum):
+        Pending = enum.auto()
+        Applied = enum.auto()
+        Ignored = enum.auto()
     def __init__(
             self,
             link:str,
@@ -83,6 +81,18 @@ class Posting:
 
     def getStatus(self):
         return self.status.name
+    
+    def toggleApplied(self):
+        if self.status == Posting.STATUS.Applied:
+            self.status = Posting.STATUS.Pending
+        else:
+            self.status = Posting.STATUS.Applied
+    
+    def toggleIgnore(self):
+        if self.status == Posting.STATUS.Ignored:
+            self.status = Posting.STATUS.Pending
+        else:
+            self.status = Posting.STATUS.Ignored
 
     def getDesc(self):
         pass
