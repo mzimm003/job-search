@@ -9,41 +9,14 @@ from Search.search import Search
 from Search.utility import request
 
 import pickle
+import webbrowser
 from pathlib import Path
 from typing import (
+    List,
     Dict
 )
 from functools import partial
 import enum
-
-
-class MAINELEMENTS(enum.Enum):
-    PROFILES = enum.auto()
-    JOBSDETAIL = enum.auto()
-    ALLNEWJOBS = enum.auto()
-    NEWJOBS = enum.auto()
-    OPENPROFILE = enum.auto()
-
-class PROFILEELEMENTS(enum.Enum):
-    PEEKLINKS = enum.auto()
-    ADDSEARCH = enum.auto()
-    COMMITPHRASES = enum.auto()
-    MLSEARCHHEADER = enum.auto()
-    LINKS = enum.auto()
-    KEYID = enum.auto()
-    HTMLKEY = enum.auto()
-    SEARCHPHRASES = enum.auto()
-    JOBSTATUSUPDATE = enum.auto()
-    GETCURRENTJOBS = enum.auto()
-    JOBSDETAIL = enum.auto()
-
-class JOBELEMENTS(enum.Enum):
-    VIEWSITE = enum.auto()
-    APPLIED = enum.auto()
-    GETTIPS = enum.auto()
-    UPDATERESUME = enum.auto()
-    FILTER = enum.auto()
-    JOBLIST = enum.auto()
 
 class GUI:
     def __init__(self, portfolio:Portfolio) -> None:
@@ -87,7 +60,12 @@ class GUI:
 
     MAINWINDOWNAME = "Work"
     NEWPROFILE = '--New--'
-    MAINELEMENTS = MAINELEMENTS
+    class MAINELEMENTS(enum.Enum):
+        PROFILES = enum.auto()
+        JOBSDETAIL = enum.auto()
+        ALLNEWJOBS = enum.auto()
+        NEWJOBS = enum.auto()
+        OPENPROFILE = enum.auto()
     @staticmethod
     def MAINWINDOWLAYOUT(profiles):
         profile_panel_layout = sg.Col([
@@ -148,7 +126,18 @@ class GUI:
         save_window.close()
         return 'CLOSEALL'
 
-    PROFILEELEMENTS = PROFILEELEMENTS
+    class PROFILEELEMENTS(enum.Enum):
+        PEEKLINKS = enum.auto()
+        ADDSEARCH = enum.auto()
+        COMMITPHRASES = enum.auto()
+        MLSEARCHHEADER = enum.auto()
+        LINKS = enum.auto()
+        KEYID = enum.auto()
+        HTMLKEY = enum.auto()
+        SEARCHPHRASES = enum.auto()
+        JOBSTATUSUPDATE = enum.auto()
+        GETCURRENTJOBS = enum.auto()
+        JOBSDETAIL = enum.auto()
     @staticmethod
     def PROFILESWINDOWLAYOUT():
         header_panel_layout = sg.Col([
@@ -268,19 +257,27 @@ class GUI:
             ]
         self.__newWindow("Error", lyt, modal=True)
     
-    JOBELEMENTS = JOBELEMENTS
+    class JOBELEMENTS(enum.Enum):
+        VIEWSITE = enum.auto()
+        APPLIED = enum.auto()
+        IGNORE = enum.auto()
+        GETTIPS = enum.auto()
+        UPDATERESUME = enum.auto()
+        FILTER = enum.auto()
+        JOBLIST = enum.auto()
+        JOBDESC = enum.auto()
     @staticmethod
-    def JOBSWINDOWLAYOUT():
+    def JOBSWINDOWLAYOUT(profiles:List[str], default_prof:str):
         job_list_panel_layout = sg.Col([
             [sg.Text("Job List")],
-            [sg.Text('Company Filter'), sg.Combo([''],'', enable_events=True, key=GUI.JOBELEMENTS.FILTER)],
+            [sg.Text('Company Filter'), sg.Combo(['',*[p for p in profiles]], default_prof, enable_events=True, key=GUI.JOBELEMENTS.FILTER)],
             [sg.Table([[]], headings=['Job', 'Status'], key=GUI.JOBELEMENTS.JOBLIST, enable_events=True, expand_x=True, expand_y=True)],
             ], expand_x=True, expand_y=True)
         job_desc_layout = sg.Col([
             [sg.Text("Description")],
-            [sg.Multiline(expand_x=True, expand_y=True)],
+            [sg.Multiline(key=GUI.JOBELEMENTS.JOBDESC, expand_x=True, expand_y=True)],
             [sg.Button('View Website', key=GUI.JOBELEMENTS.VIEWSITE)],
-            [sg.Button('Applied', key=GUI.JOBELEMENTS.APPLIED)],
+            [sg.Button('Applied', key=GUI.JOBELEMENTS.APPLIED),sg.Button('Ignore', key=GUI.JOBELEMENTS.IGNORE)],
             ], expand_x=True, expand_y=True)
         GPT_layout = sg.Col([
             [sg.Text("LLM Tips")],
@@ -306,14 +303,43 @@ class GUI:
         ]
             
     def jobsWindow(self, filt=''):
-        w = self.__newWindow("Jobs", GUI.JOBSWINDOWLAYOUT(), resizable=True)
+        w = self.__newWindow("Jobs", GUI.JOBSWINDOWLAYOUT([p for p in self.portfolio.profiles if p != GUI.NEWPROFILE] ,filt), resizable=True)
         w[GUI.JOBELEMENTS.FILTER].update(value=filt)
         self.refreshJobList({GUI.JOBELEMENTS.FILTER:filt},w)
         self.windows[w] = {
-            GUI.JOBELEMENTS.FILTER:partial(self.refreshJobList, window=w)
+            GUI.JOBELEMENTS.FILTER:partial(self.refreshJobList, window=w),
+            GUI.JOBELEMENTS.APPLIED:partial(self.setJobAsApplied, window=w),
+            GUI.JOBELEMENTS.IGNORE:partial(self.setJobAsIgnore, window=w),
+            GUI.JOBELEMENTS.JOBLIST:partial(self.displayJobDesc, window=w),
+            GUI.JOBELEMENTS.VIEWSITE:partial(self.viewWebsite, window=w),#TODO
+            GUI.JOBELEMENTS.GETTIPS:...,#TODO
+            GUI.JOBELEMENTS.UPDATERESUME:...,#TODO
             }
         return w
     
+    def viewWebsite(self, values, window:sg.Window):
+        jobs = window[GUI.JOBELEMENTS.JOBLIST].get()
+        for v in values[GUI.JOBELEMENTS.JOBLIST]:
+            webbrowser.open(self.portfolio.historicalPosts[jobs[v][0]].link)
+    
+    def displayJobDesc(self, values, window:sg.Window):
+        if values[GUI.JOBELEMENTS.JOBLIST]:
+            jobs = window[GUI.JOBELEMENTS.JOBLIST].get()
+            dispJob = jobs[values[GUI.JOBELEMENTS.JOBLIST][0]][0]
+            window[GUI.JOBELEMENTS.JOBDESC].update(value=self.portfolio.historicalPosts[dispJob].desc)
+    
+    def setJobAsApplied(self, values, window:sg.Window):
+        jobs = window[GUI.JOBELEMENTS.JOBLIST].get()
+        for v in values[GUI.JOBELEMENTS.JOBLIST]:
+            self.portfolio.historicalPosts[jobs[v][0]].toggleApplied()
+        self.refreshJobList(values, window)
+
+    def setJobAsIgnore(self, values, window:sg.Window):
+        jobs = window[GUI.JOBELEMENTS.JOBLIST].get()
+        for v in values[GUI.JOBELEMENTS.JOBLIST]:
+            self.portfolio.historicalPosts[jobs[v][0]].toggleIgnore()
+        self.refreshJobList(values, window)
+
     def refreshJobList(self, values, window:sg.Window):
         def filt(k):
             return values[GUI.JOBELEMENTS.FILTER] == '' or values[GUI.JOBELEMENTS.FILTER] in k[0]
