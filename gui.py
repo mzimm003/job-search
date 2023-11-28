@@ -192,8 +192,12 @@ class GUI:
             GUI.PROFILEELEMENTS.PEEKLINKS:partial(self.peekLinks, window=w),
             GUI.PROFILEELEMENTS.COMMITPHRASES:partial(self.commitPhrases, window=w, profile=self.portfolio.profiles[profile]),
             GUI.PROFILEELEMENTS.GETCURRENTJOBS:partial(self.getCurrentJobs, window=w, profile=self.portfolio.profiles[profile]),
+            GUI.PROFILEELEMENTS.JOBSDETAIL:partial(self.openJobDetail, window=w, profile=self.portfolio.profiles[profile])
             }
         return w
+
+    def openJobDetail(self, values, window:sg.Window, profile:Profile):
+        self.jobsWindow(profile.name)
 
     def getCurrentJobs(self, values, window:sg.Window, profile:Profile):
         self.portfolio.getNewJobsByProfile(profile)
@@ -311,7 +315,7 @@ class GUI:
             GUI.JOBELEMENTS.APPLIED:partial(self.setJobAsApplied, window=w),
             GUI.JOBELEMENTS.IGNORE:partial(self.setJobAsIgnore, window=w),
             GUI.JOBELEMENTS.JOBLIST:partial(self.displayJobDesc, window=w),
-            GUI.JOBELEMENTS.VIEWSITE:partial(self.viewWebsite, window=w),#TODO
+            GUI.JOBELEMENTS.VIEWSITE:partial(self.viewWebsite, window=w),
             GUI.JOBELEMENTS.GETTIPS:...,#TODO
             GUI.JOBELEMENTS.UPDATERESUME:...,#TODO
             }
