@@ -20,6 +20,7 @@ class Search:
             searchReq:Dict = None,
             searchPhrases:List[str] = None,
             jobKeyId:str = '',
+            pageKeyId:str = 'page',
             descKey:str = '',
             retType:str = 'json'
             ) -> None:
@@ -30,6 +31,7 @@ class Search:
         self.searchPhrases = [] if searchPhrases is None else searchPhrases
         self.retType = retType
         self.jobKeyId = jobKeyId
+        self.pageKeyId = pageKeyId
         self.descKey = descKey
     
     def listJobs(self) -> List[str]:
@@ -82,6 +84,7 @@ class Search:
         cls,
         searchReq:Dict,
         jobKeyId = '',
+        pageKeyId = 'page',
         descKey = '',
         ):
         obj = cls()
@@ -90,7 +93,7 @@ class Search:
         obj.jobKeyId = jobKeyId
         obj.listJobsMethod = [
             partial(request),
-            partial(getlinks, keyword=obj.jobKeyId),
+            partial(getlinks, jobKeyword=obj.jobKeyId, pageKeyword=obj.pageKeyId),
             ]
         obj.searchReq = searchReq
         obj.descKey = descKey
