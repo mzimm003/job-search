@@ -93,6 +93,7 @@ class GUI:
     
     def mainWindow(self):
         w = self.__newWindow(GUI.MAINWINDOWNAME, GUI.MAINWINDOWLAYOUT(self.portfolio.profiles), enable_close_attempted_event=True, resizable=True)
+        w.maximize()
         self.primaryWindow = w
         self.windows[w] = {
             GUI.MAINELEMENTS.OPENPROFILE:self.openProfile,
@@ -132,6 +133,8 @@ class GUI:
         COMMITPHRASES = enum.auto()
         MLSEARCHHEADER = enum.auto()
         LINKS = enum.auto()
+        DESCRIPTION = enum.auto()
+        PEEKDESC = enum.auto()
         JOBKEYID = enum.auto()
         PAGEKEYID = enum.auto()
         HTMLKEY = enum.auto()
@@ -143,9 +146,9 @@ class GUI:
     def PROFILESWINDOWLAYOUT():
         header_panel_layout = sg.Col([
             [sg.Text("Sample Header")],
-            [sg.Multiline(key=GUI.PROFILEELEMENTS.MLSEARCHHEADER, size=(75,20), expand_x=True, expand_y=True)],
+            [sg.Multiline(key=GUI.PROFILEELEMENTS.MLSEARCHHEADER, size=(60,20), expand_x=True, expand_y=True)],
             ], expand_x=True, expand_y=True)
-        link_peak_layout = sg.Col([
+        link_peek_layout = sg.Col([
             [sg.Text("Job Identifying Keyword Help")],
             [sg.Listbox([], expand_x=True, expand_y=True, key=GUI.PROFILEELEMENTS.LINKS)],
             [sg.Button('Peek Links', key=GUI.PROFILEELEMENTS.PEEKLINKS)]
@@ -153,7 +156,7 @@ class GUI:
         search_spec_layout = sg.Col([
             [sg.Col([[sg.Text("Link Keyword Identifying Jobs")],
                      [sg.Text("Link Keyword Identifying Pages")],
-                     [sg.Text("Job Desc HTML element")]]),
+                     [sg.Text("Job Desc HTML Element")]]),
              sg.Col([[sg.In(key=GUI.PROFILEELEMENTS.JOBKEYID, expand_x=True)],
                      [sg.In(key=GUI.PROFILEELEMENTS.PAGEKEYID, default_text='page', expand_x=True)],
                      [sg.In(key=GUI.PROFILEELEMENTS.HTMLKEY, default_text='type.class; e.g. article.node--type-job-opportunity', expand_x=True)],
@@ -162,8 +165,13 @@ class GUI:
         search_phrase_layout = sg.Col([
             [sg.Multiline(size=(25,8), key=GUI.PROFILEELEMENTS.SEARCHPHRASES),sg.Button('Commit Phrases', key=GUI.PROFILEELEMENTS.COMMITPHRASES)],
             ], expand_x=True, expand_y=True)
+        desc_peek_layout = sg.Col([
+            [sg.Text("Job Desc HTML Element Help")],
+            [sg.Multiline('', expand_x=True, expand_y=True, key=GUI.PROFILEELEMENTS.DESCRIPTION)],
+            [sg.Button('Peek Description', key=GUI.PROFILEELEMENTS.PEEKDESC)]
+            ], expand_x=True, expand_y=True)
         search_panel_layout = [
-            [header_panel_layout, link_peak_layout],
+            [header_panel_layout, link_peek_layout, desc_peek_layout],
             [search_spec_layout],
             [sg.Button('Commit Search', key=GUI.PROFILEELEMENTS.ADDSEARCH)],
             [search_phrase_layout]
@@ -192,9 +200,16 @@ class GUI:
             GUI.PROFILEELEMENTS.PEEKLINKS:partial(self.peekLinks, window=w),
             GUI.PROFILEELEMENTS.COMMITPHRASES:partial(self.commitPhrases, window=w, profile=self.portfolio.profiles[profile]),
             GUI.PROFILEELEMENTS.GETCURRENTJOBS:partial(self.getCurrentJobs, window=w, profile=self.portfolio.profiles[profile]),
-            GUI.PROFILEELEMENTS.JOBSDETAIL:partial(self.openJobDetail, window=w, profile=self.portfolio.profiles[profile])
+            GUI.PROFILEELEMENTS.JOBSDETAIL:partial(self.openJobDetail, window=w, profile=self.portfolio.profiles[profile]),
+            GUI.PROFILEELEMENTS.PEEKDESC:partial(self.peekDesc, window=w, profile=self.portfolio.profiles[profile]),
             }
         return w
+
+    def peekDesc(self, values, window:sg.Window, profile:Profile):
+        if profile.search.searchReq is None:
+            self.errorMsg("Must first commit search to create profile.")
+        else:
+            window[GUI.PROFILEELEMENTS.DESCRIPTION].update(value=profile.samplePosts())
 
     def openJobDetail(self, values, window:sg.Window, profile:Profile):
         self.jobsWindow(profile.name)
@@ -230,29 +245,38 @@ class GUI:
             window[GUI.PROFILEELEMENTS.LINKS].update([l for l in search.html.links])
 
     def addSearch(self, values, window:sg.Window, profile:Profile):
-        if '' in {values[GUI.PROFILEELEMENTS.MLSEARCHHEADER],
+        if profile.name == GUI.NEWPROFILE and '' in {values[GUI.PROFILEELEMENTS.MLSEARCHHEADER],
                   values[GUI.PROFILEELEMENTS.JOBKEYID],
                   values[GUI.PROFILEELEMENTS.PAGEKEYID],
                   values[GUI.PROFILEELEMENTS.HTMLKEY]}:
-            self.errorMsg("Must fill the search parameters, 'Header' and 'Job/Page Indetifying Keyword'")
+            self.errorMsg("Must fill the search parameters:\n\t\u2022'Header'\n\t\u2022'Job Indetifying Keyword'\n\t\u2022'Page Indetifying Keyword'\n\t\u2022Description HTML Element")
+        elif '' in {values[GUI.PROFILEELEMENTS.JOBKEYID],
+                  values[GUI.PROFILEELEMENTS.PAGEKEYID],
+                  values[GUI.PROFILEELEMENTS.HTMLKEY]}:
+            self.errorMsg("Must fill the search parameters:\n\t\u2022'Job Indetifying Keyword'\n\t\u2022'Page Indetifying Keyword'\n\t\u2022Description HTML Element")
         else:
-            search_header = Transform().GUIRequestHeaderToRequestParamDict(values[GUI.PROFILEELEMENTS.MLSEARCHHEADER])
-            srchPhrs = self.searchPhraseWindow(values[GUI.PROFILEELEMENTS.MLSEARCHHEADER])
-            search_header['url'] = search_header['url'].replace(srchPhrs, '{}')
-            search = Search.byHTML(searchReq=search_header,
-                                   jobKeyId=values[GUI.PROFILEELEMENTS.JOBKEYID],
-                                   pageKeyId=values[GUI.PROFILEELEMENTS.PAGEKEYID],
-                                   descKey=values[GUI.PROFILEELEMENTS.HTMLKEY])
-            search.addSearchPhrase(Transform.HTMLTextToPlain(srchPhrs))
-            if profile.name != GUI.NEWPROFILE:
-                profile.defineSearch(search)
+            if '' == values[GUI.PROFILEELEMENTS.MLSEARCHHEADER]:
+                profile.search.setJobKeyId(values[GUI.PROFILEELEMENTS.JOBKEYID])
+                profile.search.setPageKeyId(values[GUI.PROFILEELEMENTS.PAGEKEYID])
+                profile.search.setDescKey(values[GUI.PROFILEELEMENTS.HTMLKEY])
             else:
-                profile = Profile.bySearch(search)
-                self.portfolio.addProfile(profile)
-                self.primaryWindow[GUI.MAINELEMENTS.PROFILES].update([k for k in self.portfolio.profiles.keys()])
-                tmpwin = self.profileWindow(profile.name)
-                self.__closeWindow(window)
-                window = tmpwin
+                search_header = Transform().GUIRequestHeaderToRequestParamDict(values[GUI.PROFILEELEMENTS.MLSEARCHHEADER])
+                srchPhrs = self.searchPhraseWindow(values[GUI.PROFILEELEMENTS.MLSEARCHHEADER])
+                search_header['url'] = search_header['url'].replace(srchPhrs, '{}')
+                search = Search.byHTML(searchReq=search_header,
+                                    jobKeyId=values[GUI.PROFILEELEMENTS.JOBKEYID],
+                                    pageKeyId=values[GUI.PROFILEELEMENTS.PAGEKEYID],
+                                    descKey=values[GUI.PROFILEELEMENTS.HTMLKEY])
+                search.addSearchPhrase(Transform.HTMLTextToPlain(srchPhrs))
+                if profile.name != GUI.NEWPROFILE:
+                    profile.defineSearch(search)
+                else:
+                    profile = Profile.bySearch(search)
+                    self.portfolio.addProfile(profile)
+                    self.primaryWindow[GUI.MAINELEMENTS.PROFILES].update([k for k in self.portfolio.profiles.keys()])
+                    tmpwin = self.profileWindow(profile.name)
+                    self.__closeWindow(window)
+                    window = tmpwin
             self.refreshSearchConfigVisual(window, profile)
     
     def refreshSearchConfigVisual(self, window:sg.Window, profile:Profile):
