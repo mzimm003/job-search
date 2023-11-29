@@ -1,6 +1,7 @@
 from typing import (
     List,
-    Dict
+    Dict,
+    Set
 )
 from Search.search import Search
 import enum
@@ -36,6 +37,7 @@ class Profile:
         self.search : Search = search
         self.currentPosts : Dict[str,'Posting'] = {}
         self.historicalPosts : Dict[str,'Posting'] = {}
+        self.ignorablePosts : Set[str] = set()
         self.jobCount = 0
 
     @classmethod
@@ -44,14 +46,27 @@ class Profile:
 
     def defineSearch(self, search:Search):
         self.search = search
+
+    def samplePosts(self):
+        jobs = self.search.listJobs()
+        return self.search.getJobDesc(jobs[0])
     
     def gatherPosts(self):
         self.currentPosts = {}
         jobs = self.search.listJobs()
         for job in jobs:
-            if not job in self.historicalPosts:
-                self.currentPosts[self.name+'-'+str(self.jobCount)] = Posting(job, self.search.getJobDesc(job))
-                self.jobCount += 1
+            if not job in self.historicalPosts and not job in self.ignorablePosts:
+                desc = self.search.getJobDesc(job)
+                relevantJob = False
+                for phrs in self.search.searchPhrases:
+                    if desc.lower().find(phrs.lower()) != -1:
+                        relevantJob = True
+                        break
+                if relevantJob:
+                    self.currentPosts[self.name+'-'+str(self.jobCount)] = Posting(job, desc)
+                    self.jobCount += 1
+                else:
+                    self.ignorablePosts.add(job)
         self.historicalPosts.update(self.currentPosts)
     
     def getSearch(self):

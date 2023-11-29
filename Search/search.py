@@ -65,6 +65,24 @@ class Search:
     def addSearchPhrase(self, phrase):
         self.searchPhrases.append(phrase)
     
+    def setJobKeyId(self, key:str):
+        self.jobKeyId = key
+        for f in self.listJobsMethod:
+            if 'jobKeyword' in f.keywords:
+                f.keywords['jobKeyword'] = key
+
+    def setPageKeyId(self, key:str):
+        self.pageKeyId = key
+        for f in self.listJobsMethod:
+            if 'pageKeyword' in f.keywords:
+                f.keywords['pageKeyword'] = key
+
+    def setDescKey(self, key:str):
+        self.descKey = key
+        for f in self.getJobDescMethod:
+            if 'keyword' in f.keywords:
+                f.keywords['keyword'] = key
+
     def setSearchPhrases(self, phrases:List[str]):
         self.searchPhrases = phrases
 
