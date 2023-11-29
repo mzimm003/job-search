@@ -13,13 +13,17 @@ class Transform:
     @staticmethod
     def HTMLTextToPlain(text:str):
         plain = (text
-                 .replace('+',' '))
+                 .replace('+',' ')
+                 .replace('%20',' ')
+                 )
         return plain
     
     @staticmethod
     def PlainTextToHTML(text:str):
         plain = (text
-                 .replace(' ','+'))
+                 .replace(' ','+')
+                 .replace(' ','%20')
+                 )
         return plain
 
     def requestHeaderToRequestParamDict(
