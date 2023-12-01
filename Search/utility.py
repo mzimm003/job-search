@@ -1,8 +1,11 @@
 from requests_html import (
     HTMLSession
 )
+from functools import partial
 from typing import (
-    Dict
+    Dict,
+    List,
+    Callable
 )
 import requests_html
 
@@ -36,10 +39,7 @@ def get_legacy_session():
     return session
 '''end https://stackoverflow.com/questions/71603314/ssl-error-unsafe-legacy-renegotiation-disabled'''
 
-def request(searchReq:Dict):
-    # ses = HTMLSession()
-    ses = get_legacy_session()
-    return ses.request(**searchReq)
+
 
 def getlinks(
         webpageResp:requests_html.HTMLResponse,
@@ -66,3 +66,82 @@ def getDesc(
         webpageResp:requests_html.HTMLResponse,
         keyword:str):
     return webpageResp.html.find(keyword)[0].text
+
+class Plan:
+    def __init__(self) -> None:
+        self.session = None
+        self.plan = []
+
+    @classmethod
+    def HTMLDefault(cls):
+        p = cls()
+        p.estSession()
+        p.addToPlan('request')
+        p.addToPlan('accessInstAttr', attr='html')
+        p.addToPlan('accessInstAttr', attr='absolute_links')
+        p.addToPlan('request')
+        return p
+
+    def estSession(self):
+        self.session = get_legacy_session()
+    
+    def buildArgs(self, inp):
+        x = inp
+        args = []
+        for m in self.plan:
+            if isinstance(m, Plan):
+                x = m.executePlan(x)
+            else:
+                x = m(x)
+            args.append(x)
+        return args
+    
+    def request(self, searchReq:Dict):
+        return self.session.request(**searchReq)
+    
+    # def getHTMLLinks(self, html:requests_html.HTMLResponse):
+    def accessInstAttr(self, inst, attr):
+        return getattr(inst, attr)
+    
+    def extendByResult(self, l1:List, l2:List):
+        l1.extend(l2)
+        return l1
+
+    def itrList(self, it:List, call:Callable):
+        l = []
+        for i in it:
+            l.append(call(i))
+        return l
+
+    def itrDict(self, it:Dict, call:Callable):
+        l = []
+        for k, v in it.items():
+            l.append(call(v))
+        return l
+
+    def getDictElement(self, d:Dict, key):
+        return d[key]
+    
+    ADDITIONS = {
+        'request':request,
+        'itrList':itrList,
+        'itrDict':itrDict,
+        'getDictElement':getDictElement,
+    }
+
+    def addToPlan(self, add, **kwargs):
+        if isinstance(add, Plan):
+            self.plan.append(add)
+        elif add in Plan.ADDITIONS:
+            self.plan.append(partial(Plan.ADDITIONS[add], self, **kwargs))
+        else:
+            raise NotImplementedError('That action is not addable in Plan.')
+
+    def executePlan(self, inp):
+        x = inp
+        for m in self.plan:
+            if isinstance(m, Plan):
+                x = m.executePlan(x)
+            else:
+                x = m(x)
+        return x
