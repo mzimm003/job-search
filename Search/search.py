@@ -6,9 +6,6 @@ from typing import (
 from functools import partial
 from Search.utility import (
     Plan,
-    request,
-    getlinks,
-    getDesc
 )
 from Search.transforms import Transform, Request
 
@@ -48,7 +45,7 @@ class Search:
         jobs = set()
         for srchPhrs in self.searchPhrases:
             reqDict = self.searchReq.getRequestDict(srchPhrs)
-            jobs.update(self.listJobsMethod.executePlan(reqDict))
+            jobs.update(self.listJobsMethod.executePlan(reqDict, **self.__dict__))
         return list(jobs)
     
     def getJobDesc(self, link) -> List[str]:
@@ -57,7 +54,7 @@ class Search:
             'url':link,
             'headers':{"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/119.0"}
             }
-        return self.runMethod(self.getJobDescMethod, reqDict)
+        return self.getJobDescMethod.executePlan(reqDict, **self.__dict__)
 
     def runMethod(self, method, reqDict):
         x = None
@@ -73,21 +70,21 @@ class Search:
     
     def setJobKeyId(self, key:str):
         self.jobKeyId = key
-        for f in self.listJobsMethod:
-            if 'jobKeyword' in f.keywords:
-                f.keywords['jobKeyword'] = key
+        # for f in self.listJobsMethod:
+        #     if 'jobKeyword' in f.keywords:
+        #         f.keywords['jobKeyword'] = key
 
     def setPageKeyId(self, key:str):
         self.pageKeyId = key
-        for f in self.listJobsMethod:
-            if 'pageKeyword' in f.keywords:
-                f.keywords['pageKeyword'] = key
+        # for f in self.listJobsMethod:
+        #     if 'pageKeyword' in f.keywords:
+        #         f.keywords['pageKeyword'] = key
 
     def setDescKey(self, key:str):
         self.descKey = key
-        for f in self.getJobDescMethod:
-            if 'keyword' in f.keywords:
-                f.keywords['keyword'] = key
+        # for f in self.getJobDescMethod:
+        #     if 'keyword' in f.keywords:
+        #         f.keywords['keyword'] = key
 
     def setSearchPhrases(self, phrases:List[str]):
         self.searchPhrases = phrases
@@ -114,16 +111,17 @@ class Search:
         obj = cls()
         obj.orgName = searchReq.getOrg()
         obj.jobKeyId = jobKeyId
-        obj.listJobsMethod = Plan.HTMLDefault()
+        obj.listJobsMethod = Plan.HTMLJobLinksDefault()
             # [
             # partial(request),
             # partial(getlinks, jobKeyword=obj.jobKeyId, pageKeyword=obj.pageKeyId),
             # ]
         obj.searchReq = searchReq
         obj.descKey = descKey
-        obj.getJobDescMethod = [
-            partial(request),
-            partial(getDesc, keyword=obj.descKey)
-            ]
+        obj.getJobDescMethod = Plan.HTMLJobDescDefault()
+        # [
+        #     partial(request),
+        #     partial(getDesc, keyword=obj.descKey)
+        #     ]
         obj.retType = 'html'
         return obj

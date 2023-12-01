@@ -39,94 +39,68 @@ def get_legacy_session():
     return session
 '''end https://stackoverflow.com/questions/71603314/ssl-error-unsafe-legacy-renegotiation-disabled'''
 
-
-
-def getlinks(
-        webpageResp:requests_html.HTMLResponse,
-        jobKeyword:str,
-        pageKeyword:str,
-        followPages:bool=True):
-    l = []
-    for link in webpageResp.html.absolute_links:
-        if jobKeyword in link:
-            l.append(link)
-        if followPages and pageKeyword in link:
-            pageq = urllib.parse.urlparse(link).query
-            l.extend(getlinks(
-                        webpageResp.session.request('GET',
-                                                    webpageResp.url+'&'+pageq,
-                                                    headers=webpageResp.request.headers),
-                        jobKeyword,
-                        pageKeyword,
-                        False))
-
-    return l
-
-def getDesc(
-        webpageResp:requests_html.HTMLResponse,
-        keyword:str):
-    return webpageResp.html.find(keyword)[0].text
-
 class Plan:
     def __init__(self) -> None:
         self.session = None
         self.plan = []
 
     @classmethod
-    def HTMLDefault(cls):
+    def HTMLJobLinksDefault(cls):
         p = cls()
-        p.estSession()
         p.addToPlan('request')
-        p.addToPlan('accessInstAttr', attr='html')
-        p.addToPlan('accessInstAttr', attr='absolute_links')
-        p.addToPlan('request')
+        p.addToPlan('getJobLinksByHTML')
         return p
+    
+    @classmethod
+    def HTMLJobDescDefault(cls):
+        p = cls()
+        p.addToPlan('request')
+        p.addToPlan('getJobDescByHTML')
+        return p
+    
+    def request(self, reqDict:Dict, **kwargs):
+        return self.session.request(**reqDict)
 
-    def estSession(self):
-        self.session = get_legacy_session()
-    
-    def buildArgs(self, inp):
-        x = inp
-        args = []
-        for m in self.plan:
-            if isinstance(m, Plan):
-                x = m.executePlan(x)
-            else:
-                x = m(x)
-            args.append(x)
-        return args
-    
-    def request(self, searchReq:Dict):
-        return self.session.request(**searchReq)
-    
-    # def getHTMLLinks(self, html:requests_html.HTMLResponse):
-    def accessInstAttr(self, inst, attr):
-        return getattr(inst, attr)
-    
-    def extendByResult(self, l1:List, l2:List):
-        l1.extend(l2)
-        return l1
-
-    def itrList(self, it:List, call:Callable):
+    def getJobLinksByHTML(
+            self,
+            webpageResp:requests_html.HTMLResponse,
+            jobKeyId:str,
+            pageKeyId:str,
+            followPages:bool=True,
+            **kwargs):
         l = []
-        for i in it:
-            l.append(call(i))
+        for link in webpageResp.html.absolute_links:
+            if jobKeyId in link:
+                l.append(link)
+            if followPages and pageKeyId in link:
+                pageq = urllib.parse.urlparse(link).query
+                l.extend(self.getJobLinksByHTML(
+                            webpageResp.session.request('GET',
+                                                        webpageResp.url+'&'+pageq,
+                                                        headers=webpageResp.request.headers),
+                            jobKeyId,
+                            pageKeyId,
+                            False))
         return l
-
-    def itrDict(self, it:Dict, call:Callable):
-        l = []
-        for k, v in it.items():
-            l.append(call(v))
-        return l
-
-    def getDictElement(self, d:Dict, key):
-        return d[key]
     
+    def getJobLinksByJSON(self, **kwargs):
+        pass
+
+    def getJobDescByHTML(self,
+        webpageResp:requests_html.HTMLResponse,
+        descKey:str,
+        **kwargs):
+        return webpageResp.html.find(descKey)[0].text
+
+    def getJobDescByJSON(self, **kwargs):
+        pass
+
     ADDITIONS = {
         'request':request,
-        'itrList':itrList,
-        'itrDict':itrDict,
-        'getDictElement':getDictElement,
+        'getJobLinksByHTML':getJobLinksByHTML,
+        'getJobLinksByJSON':getJobLinksByJSON,
+        'getJobDescByHTML':getJobDescByHTML,
+        'getJobDescByJSON':getJobDescByJSON,
     }
 
     def addToPlan(self, add, **kwargs):
@@ -137,11 +111,13 @@ class Plan:
         else:
             raise NotImplementedError('That action is not addable in Plan.')
 
-    def executePlan(self, inp):
-        x = inp
+    def executePlan(self, reqDict, **kwargs):
+        self.session = get_legacy_session()
+        x = reqDict
         for m in self.plan:
             if isinstance(m, Plan):
-                x = m.executePlan(x)
+                x = m.executePlan(x, **kwargs)
             else:
-                x = m(x)
+                x = m(x, **kwargs)
+        self.session = None
         return x
