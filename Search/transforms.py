@@ -13,7 +13,7 @@ class Request:
             headers:Dict[str,str]=None,
             data:str=None,
             ):
-        self.method = '' if method is None else method
+        self.method = 'GET' if method is None else method
         self.url = '' if url is None else url
         self.headers = {} if headers is None else headers
         self.data = '' if data is None else data
@@ -34,10 +34,8 @@ class Request:
     def __cleanInput(self, inp:str, searchPhrase:str):
         return (inp
                 .replace("'","")
-                .replace('{','{{')
-                .replace('}','}}')
-                .replace(Transform.PlainTextToHTML(searchPhrase),'{searchPhraseHTML}')
-                .replace(Transform.HTMLTextToPlain(searchPhrase),'{searchPhrasePLAIN}'))
+                .replace(Transform.PlainTextToHTML(searchPhrase),'____XsearchPhraseHTMLX____')
+                .replace(Transform.HTMLTextToPlain(searchPhrase),'____XsearchPhrasePLAINX____'))
 
     def __setMethod(self, meth:str, searchPhrase:str):
         self.method = self.__cleanInput(meth, searchPhrase)
@@ -58,7 +56,7 @@ class Request:
     def getRequestDict(self, searchPhrase):
         return json.loads(json.dumps(self.__dict__)
                           .replace("{","{{").replace("}","}}")
-                          .replace("{{{{","{{").replace("}}}}","}}")
+                          .replace("____X","{").replace("X____","}")
                           .format(searchPhraseHTML=Transform.PlainTextToHTML(searchPhrase),
                                   searchPhrasePLAIN=Transform.HTMLTextToPlain(searchPhrase)))
 

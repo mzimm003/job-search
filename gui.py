@@ -6,7 +6,7 @@ from Search.profile import (
     Portfolio
 )
 from Search.search import Search
-from Search.utility import request
+from Search.utility import Plan
 
 import pickle
 import webbrowser
@@ -143,6 +143,7 @@ class GUI:
         PAGEKEYID = enum.auto()
         HTMLKEY = enum.auto()
         SEARCHPHRASES = enum.auto()
+        METHOD = enum.auto()
         METHUP = enum.auto()
         METHDOWN = enum.auto()
 
@@ -192,7 +193,7 @@ class GUI:
 
         method_layout = sg.Col([
             [sg.Text("Method Configuration")],
-            [sg.Listbox([], expand_x=True, expand_y=True, key=GUI.PROFILEELEMENTS.LINKS)],
+            [sg.Listbox([], expand_x=True, expand_y=True, key=GUI.PROFILEELEMENTS.METHOD)],
             [sg.Button('/\\', key=GUI.PROFILEELEMENTS.METHUP, font=('bitstream charter',8)), sg.Button('\\/', key=GUI.PROFILEELEMENTS.METHDOWN, font=('bitstream charter',8))],
         ],expand_x=True, expand_y=True)
 
@@ -236,7 +237,7 @@ class GUI:
         return w
 
     def peekDesc(self, values, window:sg.Window, profile:Profile):
-        if profile.search.searchReq is None:
+        if profile.name == GUI.NEWPROFILE:
             self.errorMsg("Must first commit search to create profile.")
         else:
             window[GUI.PROFILEELEMENTS.DESCRIPTION].update(value=profile.samplePosts())
@@ -282,7 +283,7 @@ class GUI:
             self.errorMsg("Must fill the search parameter 'Header'")
         else:
             search_header = self.__getSearchRequest(values, window, 'NEVERINAMILLIONYEARS')
-            search = request(searchReq=search_header.getRequestDict('NEVERINAMILLIONYEARS'))
+            search = Plan().request(reqDict=search_header.getRequestDict('NEVERINAMILLIONYEARS'))
             window[GUI.PROFILEELEMENTS.LINKS].update([l for l in search.html.links])
 
     def addSearch(self, values, window:sg.Window, profile:Profile):
