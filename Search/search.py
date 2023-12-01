@@ -5,19 +5,20 @@ from typing import (
 )
 from functools import partial
 from Search.utility import (
+    Plan,
     request,
     getlinks,
     getDesc
 )
-from Search.transforms import Transform
+from Search.transforms import Transform, Request
 
 class Search:
     def __init__(
             self,
             orgName:str = '',
-            listJobsMethod:List[Callable] = None,
+            listJobsMethod:Plan = None,
             getJobDescMethod:List[Callable] = None,
-            searchReq:Dict = None,
+            searchReq:Request = None,
             searchPhrases:List[str] = None,
             jobKeyId:str = '',
             pageKeyId:str = 'page',
@@ -25,24 +26,29 @@ class Search:
             retType:str = 'json'
             ) -> None:
         self.orgName = orgName
-        self.listJobsMethod = [] if listJobsMethod is None else listJobsMethod
+        self.listJobsMethod = Plan() if listJobsMethod is None else listJobsMethod
         self.getJobDescMethod = [] if getJobDescMethod is None else getJobDescMethod
-        self.searchReq = {} if searchReq is None else searchReq
+        self.searchReq = Request() if searchReq is None else searchReq
         self.searchPhrases = [] if searchPhrases is None else searchPhrases
         self.retType = retType
         self.jobKeyId = jobKeyId
         self.pageKeyId = pageKeyId
         self.descKey = descKey
     
+    def updatePlan(self, plan:Plan, planStr:str):
+        if planStr == 'listJobs':
+            self.listJobsMethod = plan
+        elif planStr == 'jobDesc':
+            self.getJobDescMethod = plan
+
     def listJobs(self) -> List[str]:
         '''
         return ...string links?... to job postings
         '''
         jobs = set()
         for srchPhrs in self.searchPhrases:
-            reqDict = dict(self.searchReq)
-            reqDict['url'] = reqDict['url'].format(Transform.PlainTextToHTML(srchPhrs))
-            jobs.update(self.runMethod(self.listJobsMethod, reqDict))
+            reqDict = self.searchReq.getRequestDict(srchPhrs)
+            jobs.update(self.listJobsMethod.executePlan(reqDict))
         return list(jobs)
     
     def getJobDesc(self, link) -> List[str]:
@@ -100,19 +106,19 @@ class Search:
     @classmethod
     def byHTML(
         cls,
-        searchReq:Dict,
+        searchReq:Request,
         jobKeyId = '',
         pageKeyId = 'page',
         descKey = '',
         ):
         obj = cls()
-        orgName = searchReq['url'].lstrip('https://')
-        obj.orgName = orgName[:orgName.find('/')]
+        obj.orgName = searchReq.getOrg()
         obj.jobKeyId = jobKeyId
-        obj.listJobsMethod = [
-            partial(request),
-            partial(getlinks, jobKeyword=obj.jobKeyId, pageKeyword=obj.pageKeyId),
-            ]
+        obj.listJobsMethod = Plan.HTMLDefault()
+            # [
+            # partial(request),
+            # partial(getlinks, jobKeyword=obj.jobKeyId, pageKeyword=obj.pageKeyId),
+            # ]
         obj.searchReq = searchReq
         obj.descKey = descKey
         obj.getJobDescMethod = [

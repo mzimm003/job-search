@@ -25,6 +25,12 @@ class Portfolio:
         prof.gatherPosts()
         self.currentPosts.update(prof.currentPosts)
         self.historicalPosts.update(prof.historicalPosts)
+
+    def CLEARALLPOSTS(self):
+        for k, p in self.profiles.items():
+            p.CLEARALLPOSTS()
+        self.currentPosts = {}
+        self.historicalPosts = {}
         
 
 class Profile:
@@ -55,7 +61,7 @@ class Profile:
         self.currentPosts = {}
         jobs = self.search.listJobs()
         for job in jobs:
-            if not job in self.historicalPosts and not job in self.ignorablePosts:
+            if not job in self.ignorablePosts:
                 desc = self.search.getJobDesc(job)
                 relevantJob = False
                 for phrs in self.search.searchPhrases:
@@ -65,8 +71,7 @@ class Profile:
                 if relevantJob:
                     self.currentPosts[self.name+'-'+str(self.jobCount)] = Posting(job, desc)
                     self.jobCount += 1
-                else:
-                    self.ignorablePosts.add(job)
+                self.ignorablePosts.add(job)
         self.historicalPosts.update(self.currentPosts)
     
     def getSearch(self):
@@ -75,6 +80,13 @@ class Profile:
     def processPosts(self):
         for cp in self.currentPosts:
             pass
+    
+    def CLEARALLPOSTS(self):
+        self.currentPosts = {}
+        self.historicalPosts = {}
+        self.ignorablePosts = set()
+        self.jobCount = 0
+
 
 class Posting:
     class STATUS(enum.Enum):

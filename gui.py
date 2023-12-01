@@ -1,6 +1,6 @@
 import PySimpleGUI as sg
 
-from Search.transforms import Transform
+from Search.transforms import Transform, Request
 from Search.profile import (
     Profile,
     Portfolio
@@ -93,7 +93,7 @@ class GUI:
     
     def mainWindow(self):
         w = self.__newWindow(GUI.MAINWINDOWNAME, GUI.MAINWINDOWLAYOUT(self.portfolio.profiles), enable_close_attempted_event=True, resizable=True)
-        w.maximize()
+        # w.maximize()
         self.primaryWindow = w
         self.windows[w] = {
             GUI.MAINELEMENTS.OPENPROFILE:self.openProfile,
@@ -128,10 +128,14 @@ class GUI:
         return 'CLOSEALL'
 
     class PROFILEELEMENTS(enum.Enum):
+        #Config Elements
         PEEKLINKS = enum.auto()
         ADDSEARCH = enum.auto()
         COMMITPHRASES = enum.auto()
         MLSEARCHHEADER = enum.auto()
+        REQTYPE = enum.auto()
+        REQTYPESCURL = enum.auto()
+        REQTYPESHEADERS = enum.auto()
         LINKS = enum.auto()
         DESCRIPTION = enum.auto()
         PEEKDESC = enum.auto()
@@ -139,19 +143,22 @@ class GUI:
         PAGEKEYID = enum.auto()
         HTMLKEY = enum.auto()
         SEARCHPHRASES = enum.auto()
+        METHUP = enum.auto()
+        METHDOWN = enum.auto()
+
+
+        #Job Elements
         JOBSTATUSUPDATE = enum.auto()
         GETCURRENTJOBS = enum.auto()
         JOBSDETAIL = enum.auto()
     @staticmethod
     def PROFILESWINDOWLAYOUT():
+        #CONFIGURATION LAYOUT
         header_panel_layout = sg.Col([
-            [sg.Text("Sample Header")],
-            [sg.Multiline(key=GUI.PROFILEELEMENTS.MLSEARCHHEADER, size=(60,20), expand_x=True, expand_y=True)],
-            ], expand_x=True, expand_y=True)
-        link_peek_layout = sg.Col([
-            [sg.Text("Job Identifying Keyword Help")],
-            [sg.Listbox([], expand_x=True, expand_y=True, key=GUI.PROFILEELEMENTS.LINKS)],
-            [sg.Button('Peek Links', key=GUI.PROFILEELEMENTS.PEEKLINKS)]
+            [sg.Text("Sample Request")],
+            [sg.Multiline(key=GUI.PROFILEELEMENTS.MLSEARCHHEADER, size=(50,20), expand_x=True, expand_y=True)],
+            [sg.Radio("cURL", GUI.PROFILEELEMENTS.REQTYPE, key = GUI.PROFILEELEMENTS.REQTYPESCURL, default=True),
+             sg.Radio("Headers", GUI.PROFILEELEMENTS.REQTYPE, key = GUI.PROFILEELEMENTS.REQTYPESHEADERS)]
             ], expand_x=True, expand_y=True)
         search_spec_layout = sg.Col([
             [sg.Col([[sg.Text("Link Keyword Identifying Jobs")],
@@ -162,27 +169,50 @@ class GUI:
                      [sg.In(key=GUI.PROFILEELEMENTS.HTMLKEY, default_text='type.class; e.g. article.node--type-job-opportunity', expand_x=True)],
                      ])],
             ], expand_x=True, expand_y=True)
-        search_phrase_layout = sg.Col([
-            [sg.Multiline(size=(25,8), key=GUI.PROFILEELEMENTS.SEARCHPHRASES),sg.Button('Commit Phrases', key=GUI.PROFILEELEMENTS.COMMITPHRASES)],
+        config_layout = sg.Col([
+            [header_panel_layout],
+            [search_spec_layout],
+            ],expand_x=True, expand_y=True)
+        
+        link_peek_layout = sg.Col([
+            [sg.Text("Job Identifying Keyword Help")],
+            [sg.Listbox([], expand_x=True, expand_y=True, key=GUI.PROFILEELEMENTS.LINKS)],
+            [sg.Button('Peek Links', key=GUI.PROFILEELEMENTS.PEEKLINKS)]
             ], expand_x=True, expand_y=True)
         desc_peek_layout = sg.Col([
             [sg.Text("Job Desc HTML Element Help")],
             [sg.Multiline('', expand_x=True, expand_y=True, key=GUI.PROFILEELEMENTS.DESCRIPTION)],
             [sg.Button('Peek Description', key=GUI.PROFILEELEMENTS.PEEKDESC)]
             ], expand_x=True, expand_y=True)
+        peek_layout = sg.Col([
+            [sg.Text("Config Assistance")],
+            [link_peek_layout],
+            [desc_peek_layout]
+        ],expand_x=True, expand_y=True)
+
+        method_layout = sg.Col([
+            [sg.Text("Method Configuration")],
+            [sg.Listbox([], expand_x=True, expand_y=True, key=GUI.PROFILEELEMENTS.LINKS)],
+            [sg.Button('/\\', key=GUI.PROFILEELEMENTS.METHUP, font=('bitstream charter',8)), sg.Button('\\/', key=GUI.PROFILEELEMENTS.METHDOWN, font=('bitstream charter',8))],
+        ],expand_x=True, expand_y=True)
+
+        search_phrase_layout = sg.Col([
+            [sg.Multiline(size=(25,8), key=GUI.PROFILEELEMENTS.SEARCHPHRASES),sg.Button('Commit Phrases', key=GUI.PROFILEELEMENTS.COMMITPHRASES)],
+            ], expand_x=True, expand_y=True)
+
+        #JOBS LAYOUT
+
+        #TAB LAYOUT
         search_panel_layout = [
-            [header_panel_layout, link_peek_layout, desc_peek_layout],
-            [search_spec_layout],
+            [config_layout, method_layout,peek_layout],
             [sg.Button('Commit Search', key=GUI.PROFILEELEMENTS.ADDSEARCH)],
             [search_phrase_layout]
             ]
-        
         job_panel_layout = [
             [sg.Button('Find Current Jobs', key=GUI.PROFILEELEMENTS.GETCURRENTJOBS)],
             [sg.Multiline(size=(70,20),key=GUI.PROFILEELEMENTS.JOBSTATUSUPDATE)],
             [sg.Button('View Jobs', key=GUI.PROFILEELEMENTS.JOBSDETAIL)]
         ]
-
         tabs = sg.TabGroup([[
             sg.Tab('Search Config', search_panel_layout),
             sg.Tab('Jobs', job_panel_layout)]], expand_x=True, expand_y=True)
@@ -235,13 +265,24 @@ class GUI:
         }
         selection = self.__newWindow('Search Phrase',lyt,modal=True, modalEvents=modEv, modalCloseSet=set([CNFBTTN]))
         return selection
-        
+    
+    def __getSearchRequest(self, values, window:sg.Window, srchPhrs)->Request:
+        searchTypeSelection = [
+            values[GUI.PROFILEELEMENTS.REQTYPESHEADERS],
+            values[GUI.PROFILEELEMENTS.REQTYPESCURL],
+        ].index(True)
+        searchHeader = {
+            0:Transform().GUIRequestHeaderToRequest,
+            1:Transform().GUICurlToRequest,
+            }[searchTypeSelection](values[GUI.PROFILEELEMENTS.MLSEARCHHEADER],srchPhrs)
+        return searchHeader
+
     def peekLinks(self, values, window:sg.Window):
         if values[GUI.PROFILEELEMENTS.MLSEARCHHEADER] == '':
             self.errorMsg("Must fill the search parameter 'Header'")
         else:
-            search_header = Transform().GUIRequestHeaderToRequestParamDict(values[GUI.PROFILEELEMENTS.MLSEARCHHEADER])
-            search = request(searchReq=search_header)
+            search_header = self.__getSearchRequest(values, window, 'NEVERINAMILLIONYEARS')
+            search = request(searchReq=search_header.getRequestDict('NEVERINAMILLIONYEARS'))
             window[GUI.PROFILEELEMENTS.LINKS].update([l for l in search.html.links])
 
     def addSearch(self, values, window:sg.Window, profile:Profile):
@@ -260,10 +301,9 @@ class GUI:
                 profile.search.setPageKeyId(values[GUI.PROFILEELEMENTS.PAGEKEYID])
                 profile.search.setDescKey(values[GUI.PROFILEELEMENTS.HTMLKEY])
             else:
-                search_header = Transform().GUIRequestHeaderToRequestParamDict(values[GUI.PROFILEELEMENTS.MLSEARCHHEADER])
                 srchPhrs = self.searchPhraseWindow(values[GUI.PROFILEELEMENTS.MLSEARCHHEADER])
-                search_header['url'] = search_header['url'].replace(srchPhrs, '{}')
-                search = Search.byHTML(searchReq=search_header,
+                searchHeader = self.__getSearchRequest(values, window, srchPhrs)
+                search = Search.byHTML(searchReq=searchHeader,
                                     jobKeyId=values[GUI.PROFILEELEMENTS.JOBKEYID],
                                     pageKeyId=values[GUI.PROFILEELEMENTS.PAGEKEYID],
                                     descKey=values[GUI.PROFILEELEMENTS.HTMLKEY])
