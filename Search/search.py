@@ -20,7 +20,9 @@ class Search:
             jobKeyId:str = '',
             pageKeyId:str = 'page',
             descKey:str = '',
-            retType:str = 'json'
+            retType:str = 'json',
+            jobListPathKeyIds:str = '',
+            jobLinkKeyId:str = '',
             ) -> None:
         self.orgName = orgName
         self.listJobsMethod = Plan() if listJobsMethod is None else listJobsMethod
@@ -31,6 +33,8 @@ class Search:
         self.jobKeyId = jobKeyId
         self.pageKeyId = pageKeyId
         self.descKey = descKey
+        self.jobListPathKeyIds = jobListPathKeyIds
+        self.jobLinkKeyId = jobLinkKeyId
     
     def updatePlan(self, plan:Plan, planStr:str):
         if planStr == 'listJobs':
@@ -111,17 +115,31 @@ class Search:
         obj = cls()
         obj.orgName = searchReq.getOrg()
         obj.jobKeyId = jobKeyId
+        obj.pageKeyId = pageKeyId
         obj.listJobsMethod = Plan.HTMLJobLinksDefault()
-            # [
-            # partial(request),
-            # partial(getlinks, jobKeyword=obj.jobKeyId, pageKeyword=obj.pageKeyId),
-            # ]
         obj.searchReq = searchReq
         obj.descKey = descKey
         obj.getJobDescMethod = Plan.HTMLJobDescDefault()
-        # [
-        #     partial(request),
-        #     partial(getDesc, keyword=obj.descKey)
-        #     ]
         obj.retType = 'html'
+        return obj
+    
+    @classmethod
+    def byJSON(
+        cls,
+        searchReq:Request,
+        jobKeyId = '',
+        pageKeyId = 'page',
+        descKey = '',
+        ):
+        obj = cls()
+        obj.orgName = searchReq.getOrg()
+        obj.pageKeyId = pageKeyId
+        obj.jobListPathKeyIds, obj.jobLinkKeyId = jobKeyId.split(';')
+        obj.jobLinkKeyId = obj.jobLinkKeyId.strip()
+        obj.jobListPathKeyIds = [x.strip() for x in obj.jobListPathKeyIds.split(',')]
+        obj.listJobsMethod = Plan.JSONJobLinksDefault()
+        obj.searchReq = searchReq
+        obj.descKey = descKey
+        obj.getJobDescMethod = Plan.HTMLJobDescDefault()
+        obj.retType = 'json'
         return obj

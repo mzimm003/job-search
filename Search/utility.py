@@ -39,9 +39,12 @@ def get_legacy_session():
     return session
 '''end https://stackoverflow.com/questions/71603314/ssl-error-unsafe-legacy-renegotiation-disabled'''
 
+# NEED:
+# HTML v. JSON
+# ?????Render v. no render?????
+
 class Plan:
     def __init__(self) -> None:
-        self.session = None
         self.plan = []
 
     @classmethod
@@ -58,8 +61,23 @@ class Plan:
         p.addToPlan('getJobDescByHTML')
         return p
     
+    @classmethod
+    def JSONJobLinksDefault(cls):
+        p = cls()
+        p.addToPlan('request')
+        p.addToPlan('getJobLinksByJSON')
+        return p
+    
+    @classmethod
+    def JSONJobDescDefault(cls):
+        p = cls()
+        p.addToPlan('request')
+        p.addToPlan('getJobDescByJSON')
+        return p
+    
     def request(self, reqDict:Dict, **kwargs):
-        return self.session.request(**reqDict)
+        ses = get_legacy_session()
+        return ses.request(**reqDict)
 
     def getJobLinksByHTML(
             self,
@@ -83,8 +101,18 @@ class Plan:
                             False))
         return l
     
-    def getJobLinksByJSON(self, **kwargs):
-        pass
+    def getJobLinksByJSON(self,
+                          webpageResp:requests_html.HTMLResponse,
+                          jobListPathKeyIds:List[str],
+                          jobLinkKeyId:List[str],
+                          **kwargs):
+        jobList = webpageResp.json()
+        jobLinks = []
+        for k in jobListPathKeyIds:
+            jobList = jobList[k]
+        for job in jobList:
+            jobLinks.append(job[jobLinkKeyId])
+        return jobLinks
 
     def getJobDescByHTML(self,
         webpageResp:requests_html.HTMLResponse,
@@ -112,12 +140,10 @@ class Plan:
             raise NotImplementedError('That action is not addable in Plan.')
 
     def executePlan(self, reqDict, **kwargs):
-        self.session = get_legacy_session()
         x = reqDict
         for m in self.plan:
             if isinstance(m, Plan):
                 x = m.executePlan(x, **kwargs)
             else:
                 x = m(x, **kwargs)
-        self.session = None
         return x
