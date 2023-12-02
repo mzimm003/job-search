@@ -16,6 +16,7 @@ from typing import (
     Dict
 )
 from functools import partial
+import traceback
 import enum
 
 class GUI:
@@ -133,9 +134,9 @@ class GUI:
         ADDSEARCH = enum.auto()
         COMMITPHRASES = enum.auto()
         MLSEARCHHEADER = enum.auto()
-        REQTYPE = enum.auto()
-        REQTYPESCURL = enum.auto()
-        REQTYPESHEADERS = enum.auto()
+        RETTYPE = enum.auto()
+        RETTYPESHTML = enum.auto()
+        RETTYPESJSON = enum.auto()
         LINKS = enum.auto()
         DESCRIPTION = enum.auto()
         PEEKDESC = enum.auto()
@@ -158,8 +159,8 @@ class GUI:
         header_panel_layout = sg.Col([
             [sg.Text("Sample Request")],
             [sg.Multiline(key=GUI.PROFILEELEMENTS.MLSEARCHHEADER, size=(50,20), expand_x=True, expand_y=True)],
-            [sg.Radio("cURL", GUI.PROFILEELEMENTS.REQTYPE, key = GUI.PROFILEELEMENTS.REQTYPESCURL, default=True),
-             sg.Radio("Headers", GUI.PROFILEELEMENTS.REQTYPE, key = GUI.PROFILEELEMENTS.REQTYPESHEADERS)]
+            [sg.Radio("HTML", GUI.PROFILEELEMENTS.RETTYPE, key = GUI.PROFILEELEMENTS.RETTYPESHTML, default=True),
+             sg.Radio("JSON", GUI.PROFILEELEMENTS.RETTYPE, key = GUI.PROFILEELEMENTS.RETTYPESJSON)]
             ], expand_x=True, expand_y=True)
         search_spec_layout = sg.Col([
             [sg.Col([[sg.Text("Link Keyword Identifying Jobs")],
@@ -267,15 +268,24 @@ class GUI:
         selection = self.__newWindow('Search Phrase',lyt,modal=True, modalEvents=modEv, modalCloseSet=set([CNFBTTN]))
         return selection
     
-    def __getSearchRequest(self, values, window:sg.Window, srchPhrs)->Request:
-        searchTypeSelection = [
-            values[GUI.PROFILEELEMENTS.REQTYPESHEADERS],
-            values[GUI.PROFILEELEMENTS.REQTYPESCURL],
+    def __getSearch(self, values, searchReq)->Search:
+        retTypeSelection = [
+            values[GUI.PROFILEELEMENTS.RETTYPESHTML],
+            values[GUI.PROFILEELEMENTS.RETTYPESJSON],
         ].index(True)
-        searchHeader = {
-            0:Transform().GUIRequestHeaderToRequest,
-            1:Transform().GUICurlToRequest,
-            }[searchTypeSelection](values[GUI.PROFILEELEMENTS.MLSEARCHHEADER],srchPhrs)
+        search = {
+            0:Search.byHTML,
+            1:Search.byJSON,
+            }[retTypeSelection](searchReq=searchReq,
+                                jobKeyId=values[GUI.PROFILEELEMENTS.JOBKEYID],
+                                pageKeyId=values[GUI.PROFILEELEMENTS.PAGEKEYID],
+                                descKey=values[GUI.PROFILEELEMENTS.HTMLKEY])
+        return search
+    
+    def __getSearchRequest(self, values, window:sg.Window, srchPhrs)->Request:
+        searchHeader = Transform().GUICurlToRequest(
+            values[GUI.PROFILEELEMENTS.MLSEARCHHEADER],
+            srchPhrs)
         return searchHeader
 
     def peekLinks(self, values, window:sg.Window):
@@ -304,10 +314,8 @@ class GUI:
             else:
                 srchPhrs = self.searchPhraseWindow(values[GUI.PROFILEELEMENTS.MLSEARCHHEADER])
                 searchHeader = self.__getSearchRequest(values, window, srchPhrs)
-                search = Search.byHTML(searchReq=searchHeader,
-                                    jobKeyId=values[GUI.PROFILEELEMENTS.JOBKEYID],
-                                    pageKeyId=values[GUI.PROFILEELEMENTS.PAGEKEYID],
-                                    descKey=values[GUI.PROFILEELEMENTS.HTMLKEY])
+                search = self.__getSearch(values=values, 
+                                          searchReq=searchHeader)
                 search.addSearchPhrase(Transform.HTMLTextToPlain(srchPhrs))
                 if profile.name != GUI.NEWPROFILE:
                     profile.defineSearch(search)
@@ -439,16 +447,19 @@ class GUI:
         # Create an event loop
         keepOpen = True
         while keepOpen:
-            window, event, values = sg.read_all_windows()
-            result = None
-            if event == sg.WIN_CLOSED:
-                if window is self.primaryWindow:
-                    result = self.endProgram(values)
+            try:
+                window, event, values = sg.read_all_windows()
+                result = None
+                if event == sg.WIN_CLOSED:
+                    if window is self.primaryWindow:
+                        result = self.endProgram(values)
+                    else:
+                        self.__closeWindow(window)
                 else:
-                    self.__closeWindow(window)
-            else:
-                if event in self.windows[window]:
-                    result = self.windows[window][event](values)
+                    if event in self.windows[window]:
+                        result = self.windows[window][event](values)
+            except Exception as inst:
+                self.errorMsg('{}:{}\n{}'.format(type(inst), inst, traceback.format_exc()))
 
 
             # elif event == GUI.JOBSDETAIL:
