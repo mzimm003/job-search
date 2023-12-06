@@ -20,7 +20,6 @@ class Search:
             jobKeyId:str = '',
             pageKeyId:str = 'page',
             descKey:str = '',
-            retType:str = 'json',
             jobListPathKeyIds:str = '',
             jobLinkKeyId:str = '',
             ) -> None:
@@ -29,7 +28,6 @@ class Search:
         self.getJobDescMethod = [] if getJobDescMethod is None else getJobDescMethod
         self.searchReq = Request() if searchReq is None else searchReq
         self.searchPhrases = [] if searchPhrases is None else searchPhrases
-        self.retType = retType
         self.jobKeyId = jobKeyId
         self.pageKeyId = pageKeyId
         self.descKey = descKey
@@ -94,15 +92,27 @@ class Search:
         self.searchPhrases = phrases
 
     @classmethod
-    def byJSON(
-        self,
-        searchReq:Dict = {},
+    def byOptions(
+        cls,
+        searchReq:Request,
+        jobKeyId = '',
+        pageKeyId = 'page',
+        descKey = '',
+        jobListRetType = 'html',
+        jobListRenReq = False,
+        jobDescRetType = 'html',
+        jobDescRenReq = False,
         ):
-        return Search(
-            [],
-            searchReq,
-            'json')
-        
+        obj = cls()
+        obj.orgName = searchReq.getOrg()
+        obj.jobKeyId = jobKeyId
+        obj.pageKeyId = pageKeyId
+        obj.listJobsMethod = Plan.jobLinksByOptions(retType=jobListRetType,renReq=jobListRenReq)
+        obj.searchReq = searchReq
+        obj.descKey = descKey
+        obj.getJobDescMethod = Plan.jobDescByOptions(retType=jobDescRetType,renReq=jobDescRenReq)
+        return obj
+    
 
     @classmethod
     def byHTML(

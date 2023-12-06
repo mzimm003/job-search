@@ -1,4 +1,5 @@
 import PySimpleGUI as sg
+import argparse
 
 from Search.transforms import Transform, Request
 from Search.profile import (
@@ -20,10 +21,11 @@ import traceback
 import enum
 
 class GUI:
-    def __init__(self, portfolio:Portfolio) -> None:
+    def __init__(self, portfolio:Portfolio, LLM_API_Key:str) -> None:
         self.windows:Dict[str, sg.Window] = {}
         self.primaryWindow:sg.Window = None
         self.portfolio:Portfolio = portfolio
+        self.LLM_API_Key:str = LLM_API_Key
 
     def __newWindow(self, name, layout, modal=False, enable_close_attempted_event=False, resizable=False, modalEvents={}, modalCloseSet=set(['OK'])):
         loc = (None, None)
@@ -137,6 +139,9 @@ class GUI:
         RETTYPE = enum.auto()
         RETTYPESHTML = enum.auto()
         RETTYPESJSON = enum.auto()
+        RENREQ = enum.auto()
+        RENREQNO = enum.auto()
+        RENREQYES = enum.auto()
         LINKS = enum.auto()
         DESCRIPTION = enum.auto()
         PEEKDESC = enum.auto()
@@ -159,8 +164,6 @@ class GUI:
         header_panel_layout = sg.Col([
             [sg.Text("Sample Request")],
             [sg.Multiline(key=GUI.PROFILEELEMENTS.MLSEARCHHEADER, size=(50,20), expand_x=True, expand_y=True)],
-            [sg.Radio("HTML", GUI.PROFILEELEMENTS.RETTYPE, key = GUI.PROFILEELEMENTS.RETTYPESHTML, default=True),
-             sg.Radio("JSON", GUI.PROFILEELEMENTS.RETTYPE, key = GUI.PROFILEELEMENTS.RETTYPESJSON)]
             ], expand_x=True, expand_y=True)
         search_spec_layout = sg.Col([
             [sg.Col([[sg.Text("Link Keyword Identifying Jobs")],
@@ -194,8 +197,14 @@ class GUI:
 
         method_layout = sg.Col([
             [sg.Text("Method Configuration")],
-            [sg.Listbox([], expand_x=True, expand_y=True, key=GUI.PROFILEELEMENTS.METHOD)],
-            [sg.Button('/\\', key=GUI.PROFILEELEMENTS.METHUP, font=('bitstream charter',8)), sg.Button('\\/', key=GUI.PROFILEELEMENTS.METHDOWN, font=('bitstream charter',8))],
+            [sg.Text("Expected Reponse:"),
+             sg.Radio("HTML", GUI.PROFILEELEMENTS.RETTYPE, key = GUI.PROFILEELEMENTS.RETTYPESHTML, default=True),
+             sg.Radio("JSON", GUI.PROFILEELEMENTS.RETTYPE, key = GUI.PROFILEELEMENTS.RETTYPESJSON)],
+            [sg.Text("Render Required:"),
+             sg.Radio("No", GUI.PROFILEELEMENTS.RENREQ, key = GUI.PROFILEELEMENTS.RENREQNO, default=True),
+             sg.Radio("Yes", GUI.PROFILEELEMENTS.RENREQ, key = GUI.PROFILEELEMENTS.RENREQYES)],
+            # [sg.Listbox([], expand_x=True, expand_y=True, key=GUI.PROFILEELEMENTS.METHOD)],
+            # [sg.Button('/\\', key=GUI.PROFILEELEMENTS.METHUP, font=('bitstream charter',8)), sg.Button('\\/', key=GUI.PROFILEELEMENTS.METHDOWN, font=('bitstream charter',8))],
         ],expand_x=True, expand_y=True)
 
         search_phrase_layout = sg.Col([
@@ -269,18 +278,28 @@ class GUI:
         return selection
     
     def __getSearch(self, values, searchReq)->Search:
+        methConfig = self.__getMethodConfig(values=values)
+        search = Search.byOptions(searchReq=searchReq,
+                                  jobListRetType=methConfig['retType'],
+                                  jobListRenReq=methConfig['renReq'],
+                                  jobKeyId=values[GUI.PROFILEELEMENTS.JOBKEYID],
+                                  pageKeyId=values[GUI.PROFILEELEMENTS.PAGEKEYID],
+                                  descKey=values[GUI.PROFILEELEMENTS.HTMLKEY])
+        return search
+    
+    def __getMethodConfig(self, values):
         retTypeSelection = [
             values[GUI.PROFILEELEMENTS.RETTYPESHTML],
             values[GUI.PROFILEELEMENTS.RETTYPESJSON],
         ].index(True)
-        search = {
-            0:Search.byHTML,
-            1:Search.byJSON,
-            }[retTypeSelection](searchReq=searchReq,
-                                jobKeyId=values[GUI.PROFILEELEMENTS.JOBKEYID],
-                                pageKeyId=values[GUI.PROFILEELEMENTS.PAGEKEYID],
-                                descKey=values[GUI.PROFILEELEMENTS.HTMLKEY])
-        return search
+        renReqSelection = [
+            values[GUI.PROFILEELEMENTS.RENREQNO],
+            values[GUI.PROFILEELEMENTS.RENREQYES],
+        ].index(True)
+        return {
+            'retType': ['html', 'json'][retTypeSelection],
+            'renReq': [False, True][renReqSelection]
+        }
     
     def __getSearchRequest(self, values, window:sg.Window, srchPhrs)->Request:
         searchHeader = Transform().GUICurlToRequest(
@@ -293,8 +312,10 @@ class GUI:
             self.errorMsg("Must fill the search parameter 'Header'")
         else:
             search_header = self.__getSearchRequest(values, window, 'NEVERINAMILLIONYEARS')
-            search = Plan().request(reqDict=search_header.getRequestDict('NEVERINAMILLIONYEARS'))
-            window[GUI.PROFILEELEMENTS.LINKS].update([l for l in search.html.links])
+            methConfig = self.__getMethodConfig(values=values)
+            search = Plan.peekLinks(**methConfig)
+            links = search.executePlan(reqDict=search_header.getRequestDict('NEVERINAMILLIONYEARS'))
+            window[GUI.PROFILEELEMENTS.LINKS].update(links)
 
     def addSearch(self, values, window:sg.Window, profile:Profile):
         if profile.name == GUI.NEWPROFILE and '' in {values[GUI.PROFILEELEMENTS.MLSEARCHHEADER],
@@ -482,17 +503,20 @@ class GUI:
                 keepOpen = False
                 self.closeAllWindows()
 
-def main():
+def main(LLM_API_Key=''):
     port:Portfolio = Portfolio()
     port.addProfile(Profile(GUI.NEWPROFILE, Search(descKey='type.class; e.g. article.node--type-job-opportunity')))
     if Path('Search/profiles.pkl').exists():
         with open('Search/profiles.pkl', 'rb') as f:
             port = pickle.load(f)
-    gui = GUI(portfolio=port)
+    gui = GUI(portfolio=port, LLM_API_Key=LLM_API_Key)
 
     gui.mainWindow()
 
     gui.run()
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-a', '--LLM_API_Key')
+    args = parser.parse_args()
+    main(LLM_API_Key=args.LLM_API_Key)
