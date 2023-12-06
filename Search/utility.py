@@ -39,14 +39,52 @@ def get_legacy_session():
     return session
 '''end https://stackoverflow.com/questions/71603314/ssl-error-unsafe-legacy-renegotiation-disabled'''
 
-# NEED:
-# HTML v. JSON
-# ?????Render v. no render?????
-
 class Plan:
     def __init__(self) -> None:
         self.plan = []
 
+    @classmethod
+    def peekLinks(cls, retType='html', renReq=False):
+        p = cls()
+        p.addToPlan('request')
+        if renReq:
+            p.addToPlan('renderRequest')
+
+        if retType == 'html':
+            p.addToPlan('getLinksByHTML')
+        elif retType == 'json':
+            p.addToPlan('getLinksByJSON')
+            
+        return p
+
+    @classmethod
+    def jobLinksByOptions(cls, retType='html', renReq=False):
+        p = cls()
+        p.addToPlan('request')
+        if renReq:
+            p.addToPlan('renderRequest')
+
+        if retType == 'html':
+            p.addToPlan('getJobLinksByHTML')
+        elif retType == 'json':
+            p.addToPlan('getJobLinksByJSON')
+        
+        return p
+    
+    @classmethod
+    def jobDescByOptions(cls, retType='html', renReq=False):
+        p = cls()
+        p.addToPlan('request')
+        if renReq:
+            p.addToPlan('renderRequest')
+
+        if retType == 'html':
+            p.addToPlan('getJobDescByHTML')
+        elif retType == 'json':
+            p.addToPlan('getJobDescByJSON')
+        
+        return p
+    
     @classmethod
     def HTMLJobLinksDefault(cls):
         p = cls()
@@ -78,6 +116,10 @@ class Plan:
     def request(self, reqDict:Dict, **kwargs):
         ses = get_legacy_session()
         return ses.request(**reqDict)
+    
+    def renderRequest(self, req, **kwargs):
+        req.html.render()
+        return req
 
     def getJobLinksByHTML(
             self,
@@ -99,6 +141,13 @@ class Plan:
                             jobKeyId,
                             pageKeyId,
                             False))
+        return l
+    
+    def getLinksByHTML(
+            self,
+            webpageResp:requests_html.HTMLResponse,
+            **kwargs):
+        l = [l for l in webpageResp.html.links]
         return l
     
     def getJobLinksByJSON(self,
@@ -125,6 +174,8 @@ class Plan:
 
     ADDITIONS = {
         'request':request,
+        'renderRequest':renderRequest,
+        'getLinksByHTML':getLinksByHTML,
         'getJobLinksByHTML':getJobLinksByHTML,
         'getJobLinksByJSON':getJobLinksByJSON,
         'getJobDescByHTML':getJobDescByHTML,
@@ -138,6 +189,15 @@ class Plan:
             self.plan.append(partial(Plan.ADDITIONS[add], self, **kwargs))
         else:
             raise NotImplementedError('That action is not addable in Plan.')
+    
+    def insertInPlan(self, add, idx, **kwargs):
+        if isinstance(add, Plan):
+            self.plan.insert(idx, add)
+        elif add in Plan.ADDITIONS:
+            self.plan.insert(idx, partial(Plan.ADDITIONS[add], self, **kwargs))
+        else:
+            raise NotImplementedError('That action is not addable in Plan.')
+
 
     def executePlan(self, reqDict, **kwargs):
         x = reqDict

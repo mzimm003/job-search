@@ -50,8 +50,8 @@ class Request:
         o, p = par.split(': ')
         o = self.__cleanInput(o, searchPhrase)
         p = self.__cleanInput(p, searchPhrase)
-        if o != 'Cookie':
-            self.headers[o] = p
+        # if o != 'Cookie':
+        self.headers[o] = p
     
     def getRequestDict(self, searchPhrase):
         return json.loads(json.dumps(self.__dict__)
