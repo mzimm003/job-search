@@ -12,11 +12,12 @@ import requests_html
 import urllib.parse
 import urllib3
 import ssl
+from contextlib import contextmanager
 
 '''Generously provided by:
 https://stackoverflow.com/questions/71603314/ssl-error-unsafe-legacy-renegotiation-disabled
 To address dated server side SSL (e.g. governmentjobs.com).
-WARNING: Legacy server connection leaves possibility of MITM attack descrived here:
+WARNING: Legacy server connection leaves possibility of MITM attack described here:
 https://cve.mitre.org/cgi-bin/cvename.cgi?name=CAN-2009-3555
 '''
 class CustomHttpAdapter (requests_html.requests.adapters.HTTPAdapter):
@@ -40,200 +41,111 @@ def get_legacy_session():
 '''end https://stackoverflow.com/questions/71603314/ssl-error-unsafe-legacy-renegotiation-disabled'''
 
 class Plan:
-    def __init__(self) -> None:
-        self.plan = []
+    def __init__(
+            self,
+            retType = None,
+            renReq = None,
+            jobKeyId = None,
+            pageKeyId = None,
+            jobListPathKeyIds = None,
+            jobLinkKeyId = None,
+            descKey = None,
+            titleKey = None,) -> None:
+        self.retType = '' if retType is None else retType
+        self.renReq = False if renReq is None else renReq
+        self.jobKeyId = '' if jobKeyId is None else jobKeyId
+        self.pageKeyId = '' if pageKeyId is None else pageKeyId
+        self.jobListPathKeyIds = [] if jobListPathKeyIds is None else jobListPathKeyIds
+        self.jobLinkKeyId = '' if jobLinkKeyId is None else jobLinkKeyId
+        self.descKey = '' if descKey is None else descKey
+        self.titleKey = '' if titleKey is None else titleKey
+        self.ses = None
 
-    @classmethod
-    def peekLinks(cls, retType='html', renReq=False):
-        p = cls()
-        p.addToPlan('request')
-        if renReq:
-            p.addToPlan('renderRequest')
+    @contextmanager
+    def __engageSession(self):
+        self.ses = get_legacy_session()
+        try:
+            yield self.ses
+        finally:
+            self.ses = None
 
-        if retType == 'html':
-            p.addToPlan('getLinksByHTML')
-        elif retType == 'json':
-            p.addToPlan('getLinksByJSON')
-            
-        return p
-
-    @classmethod
-    def jobLinksByOptions(cls, retType='html'):
-        p = cls()
-        if retType == 'html':
-            p.addToPlan('getJobLinksByHTML')
-        elif retType == 'json':
-            p.addToPlan('getJobLinksByJSON')
-        
-        return p
-    
-    @classmethod
-    def requestByOptions(cls, renReq=False):
-        p = cls()
-        p.addToPlan('request')
-        if renReq:
-            p.addToPlan('renderRequest')
-        
-        return p
-    
-    @classmethod
-    def jobDescByOptions(cls, retType='html', renReq=False):
-        p = cls()
-        p.addToPlan('request')
-        if renReq:
-            p.addToPlan('renderRequest')
-
-        if retType == 'html':
-            p.addToPlan('getJobDescByHTML')
-        elif retType == 'json':
-            p.addToPlan('getJobDescByJSON')
-        
-        return p
-    
-    @classmethod
-    def jobTitleByOptions(cls, retType='html', renReq=False):
-        p = cls()
-        p.addToPlan('request')
-        if renReq:
-            p.addToPlan('renderRequest')
-
-        if retType == 'html':
-            p.addToPlan('getJobTitleByHTML')
-        elif retType == 'json':
-            p.addToPlan('getJobTitleByJSON')
-        
-        return p
-    
-    @classmethod
-    def HTMLJobLinksDefault(cls):
-        p = cls()
-        p.addToPlan('request')
-        p.addToPlan('getJobLinksByHTML')
-        return p
-    
-    @classmethod
-    def HTMLJobDescDefault(cls):
-        p = cls()
-        p.addToPlan('request')
-        p.addToPlan('getJobDescByHTML')
-        return p
-    
-    @classmethod
-    def JSONJobLinksDefault(cls):
-        p = cls()
-        p.addToPlan('request')
-        p.addToPlan('getJobLinksByJSON')
-        return p
-    
-    @classmethod
-    def JSONJobDescDefault(cls):
-        p = cls()
-        p.addToPlan('request')
-        p.addToPlan('getJobDescByJSON')
-        return p
-    
-    def request(self, reqDict:Dict, **kwargs):
-        ses = get_legacy_session()
-        return ses.request(**reqDict)
-    
-    def renderRequest(self, req, **kwargs):
-        req.html.render()
+    def __request(self, reqDict:Dict):
+        req = self.ses.request(**reqDict)
+        if self.renReq:
+            req.html.render()
         return req
 
-    def getJobLinksByHTML(
+    def getJobLinks(
             self,
-            webpageResp:requests_html.HTMLResponse,
-            jobKeyId:str,
-            pageKeyId:str,
-            followPages:bool=True,
-            **kwargs):
+            reqDict:Dict,
+            followPages:bool=True):
         l = []
-        for link in webpageResp.html.absolute_links:
-            if jobKeyId in link:
-                l.append(link)
-            if followPages and pageKeyId in link:
-                pageq = urllib.parse.urlparse(link).query
-                l.extend(self.getJobLinksByHTML(
-                            webpageResp.session.request('GET',
-                                                        webpageResp.url+'&'+pageq,
-                                                        headers=webpageResp.request.headers),
-                            jobKeyId,
-                            pageKeyId,
-                            False))
+        with self.__engageSession():
+            wp = self.__request(reqDict)
+            if self.retType == 'html':
+                for link in wp.html.absolute_links:
+                    if self.jobKeyId in link:
+                        l.append(link)
+                    if followPages and self.pageKeyId in link:
+                        pageq = urllib.parse.urlparse(link).query
+                        l.extend(self.getJobLinks(
+                                    self.__request({'method':'GET',
+                                                    'url':wp.url+'&'+pageq,
+                                                    'headers':wp.request.headers}),
+                                    False))
+            elif self.retType == 'json':
+                jobList = wp.json()
+                jobLinks = []
+                for k in self.jobListPathKeyIds:
+                    jobList = jobList[k]
+                for job in jobList:
+                    jobLinks.append(job[self.jobLinkKeyId])
         return l
     
-    def getLinksByHTML(
+    def peekLinks(
             self,
-            webpageResp:requests_html.HTMLResponse,
-            **kwargs):
-        l = [l for l in webpageResp.html.links]
+            reqDict:Dict,
+            ):
+        l = None
+        with self.__engageSession():
+            wp = self.__request(reqDict)
+            if self.retType == 'html':
+                l = [l for l in wp.html.links]
+            elif self.retType == 'json':
+                pass
         return l
+
+    def __getJobDescByHTML(self,
+        wpResp:requests_html.HTMLResponse):
+        return wpResp.html.find(self.descKey)[0].text
     
-    def getJobLinksByJSON(self,
-                          webpageResp:requests_html.HTMLResponse,
-                          jobListPathKeyIds:List[str],
-                          jobLinkKeyId:List[str],
-                          **kwargs):
-        jobList = webpageResp.json()
-        jobLinks = []
-        for k in jobListPathKeyIds:
-            jobList = jobList[k]
-        for job in jobList:
-            jobLinks.append(job[jobLinkKeyId])
-        return jobLinks
+    def __getJobTitleByHTML(self,
+        wpResp:requests_html.HTMLResponse):
+        return wpResp.html.find(self.titleKey)[0].text
 
-    def getJobDescByHTML(self,
-        webpageResp:requests_html.HTMLResponse,
-        descKey:str,
-        **kwargs):
-        return webpageResp.html.find(descKey)[0].text
-    
-    def getJobTitleByHTML(self,
-        webpageResp:requests_html.HTMLResponse,
-        titleKey:str,
-        **kwargs):
-        return webpageResp.html.find(titleKey)[0].text
+    def __getFullDescByHTML(self,
+        wpResp:requests_html.HTMLResponse):
+        return {
+            'title':self.__getJobTitleByHTML(wpResp),
+            'desc':self.__getJobDescByHTML(wpResp)
+        }
 
-    def getJobDescByJSON(self, **kwargs):
-        pass
-    
-    def getJobTitleByJSON(self, **kwargs):
-        pass
-
-    ADDITIONS = {
-        'request':request,
-        'renderRequest':renderRequest,
-        'getLinksByHTML':getLinksByHTML,
-        'getJobLinksByHTML':getJobLinksByHTML,
-        'getJobLinksByJSON':getJobLinksByJSON,
-        'getJobDescByHTML':getJobDescByHTML,
-        'getJobDescByJSON':getJobDescByJSON,
-        'getJobTitleByHTML':getJobTitleByHTML,
-        'getJobTitleByJSON':getJobTitleByJSON,
-    }
-
-    def addToPlan(self, add, **kwargs):
-        if isinstance(add, Plan):
-            self.plan.append(add)
-        elif add in Plan.ADDITIONS:
-            self.plan.append(partial(Plan.ADDITIONS[add], self, **kwargs))
-        else:
-            raise NotImplementedError('That action is not addable in Plan.')
-    
-    def insertInPlan(self, add, idx, **kwargs):
-        if isinstance(add, Plan):
-            self.plan.insert(idx, add)
-        elif add in Plan.ADDITIONS:
-            self.plan.insert(idx, partial(Plan.ADDITIONS[add], self, **kwargs))
-        else:
-            raise NotImplementedError('That action is not addable in Plan.')
-
-
-    def executePlan(self, initInp, **kwargs):
-        x = initInp
-        for m in self.plan:
-            if isinstance(m, Plan):
-                x = m.executePlan(x, **kwargs)
-            else:
-                x = m(x, **kwargs)
-        return x
+    def getFullDescriptions(
+            self,
+            links:List[str],
+            ):
+        if isinstance(link, str):
+            links = [links]
+        descs = []
+        with self.__engageSession():
+            for link in links:
+                reqDict = {
+                    'method':'GET',
+                    'url':link,
+                    'headers':{"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/119.0"}
+                    }
+                wp = self.__request(reqDict)
+                descDict = {'link':link}
+                descDict.update(self.__getFullDescByHTML(wp))
+                descs.append(descDict)
+        return descs
