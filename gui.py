@@ -314,7 +314,7 @@ class GUI:
             search_header = self.__getSearchRequest(values, window, 'NEVERINAMILLIONYEARS')
             methConfig = self.__getMethodConfig(values=values)
             search = Plan.peekLinks(**methConfig)
-            links = search.executePlan(reqDict=search_header.getRequestDict('NEVERINAMILLIONYEARS'))
+            links = search.executePlan(initInp=search_header.getRequestDict('NEVERINAMILLIONYEARS'))
             window[GUI.PROFILEELEMENTS.LINKS].update(links)
 
     def addSearch(self, values, window:sg.Window, profile:Profile):

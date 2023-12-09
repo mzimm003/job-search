@@ -54,22 +54,24 @@ class Profile:
         self.search = search
 
     def samplePosts(self):
-        jobs = self.search.listJobs()
+        jobs = self.search.listJobLinks()
         return self.search.getJobDesc(jobs[0])
     
     def gatherPosts(self):
+        #################REDOOOING##################3
         self.currentPosts = {}
-        jobs = self.search.listJobs()
+        jobs = self.search.listJobLinks()
         for job in jobs:
             if not job in self.ignorablePosts:
-                desc = self.search.getJobDesc(job)
+                post = Posting.bySearch(self.getSearch())
                 relevantJob = False
                 for phrs in self.search.searchPhrases:
-                    if desc.lower().find(phrs.lower()) != -1:
+                    if (post.getTitle().lower().find(phrs.lower()) != -1 or
+                        post.getDesc().lower().find(phrs.lower()) != -1):
                         relevantJob = True
                         break
                 if relevantJob:
-                    self.currentPosts[self.name+'-'+str(self.jobCount)] = Posting(job, desc)
+                    self.currentPosts[self.name+'-'+str(self.jobCount)] = post
                     self.jobCount += 1
                 self.ignorablePosts.add(job)
         self.historicalPosts.update(self.currentPosts)
@@ -93,17 +95,20 @@ class Posting:
         Pending = enum.auto()
         Applied = enum.auto()
         Ignored = enum.auto()
+
     def __init__(
             self,
             link:str,
+            title:str,
             desc:str,
             ) -> None:
         self.link = link
+        self.title = title
         self.desc = desc
         self.status = Posting.STATUS.Pending
     
     @classmethod
-    def byLink(cls, link):
+    def bySearch(cls, search:Search) -> 'Posting':
         pass
 
     def getStatus(self):
@@ -122,7 +127,10 @@ class Posting:
             self.status = Posting.STATUS.Ignored
 
     def getDesc(self):
-        pass
+        return self.desc
+    
+    def getTitle(self):
+        return self.title
 
     def process(self):
         pass
