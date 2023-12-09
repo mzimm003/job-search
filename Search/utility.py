@@ -58,16 +58,21 @@ class Plan:
         return p
 
     @classmethod
-    def jobLinksByOptions(cls, retType='html', renReq=False):
+    def jobLinksByOptions(cls, retType='html'):
         p = cls()
-        p.addToPlan('request')
-        if renReq:
-            p.addToPlan('renderRequest')
-
         if retType == 'html':
             p.addToPlan('getJobLinksByHTML')
         elif retType == 'json':
             p.addToPlan('getJobLinksByJSON')
+        
+        return p
+    
+    @classmethod
+    def requestByOptions(cls, renReq=False):
+        p = cls()
+        p.addToPlan('request')
+        if renReq:
+            p.addToPlan('renderRequest')
         
         return p
     
@@ -82,6 +87,20 @@ class Plan:
             p.addToPlan('getJobDescByHTML')
         elif retType == 'json':
             p.addToPlan('getJobDescByJSON')
+        
+        return p
+    
+    @classmethod
+    def jobTitleByOptions(cls, retType='html', renReq=False):
+        p = cls()
+        p.addToPlan('request')
+        if renReq:
+            p.addToPlan('renderRequest')
+
+        if retType == 'html':
+            p.addToPlan('getJobTitleByHTML')
+        elif retType == 'json':
+            p.addToPlan('getJobTitleByJSON')
         
         return p
     
@@ -168,8 +187,17 @@ class Plan:
         descKey:str,
         **kwargs):
         return webpageResp.html.find(descKey)[0].text
+    
+    def getJobTitleByHTML(self,
+        webpageResp:requests_html.HTMLResponse,
+        titleKey:str,
+        **kwargs):
+        return webpageResp.html.find(titleKey)[0].text
 
     def getJobDescByJSON(self, **kwargs):
+        pass
+    
+    def getJobTitleByJSON(self, **kwargs):
         pass
 
     ADDITIONS = {
@@ -180,6 +208,8 @@ class Plan:
         'getJobLinksByJSON':getJobLinksByJSON,
         'getJobDescByHTML':getJobDescByHTML,
         'getJobDescByJSON':getJobDescByJSON,
+        'getJobTitleByHTML':getJobTitleByHTML,
+        'getJobTitleByJSON':getJobTitleByJSON,
     }
 
     def addToPlan(self, add, **kwargs):
@@ -199,8 +229,8 @@ class Plan:
             raise NotImplementedError('That action is not addable in Plan.')
 
 
-    def executePlan(self, reqDict, **kwargs):
-        x = reqDict
+    def executePlan(self, initInp, **kwargs):
+        x = initInp
         for m in self.plan:
             if isinstance(m, Plan):
                 x = m.executePlan(x, **kwargs)

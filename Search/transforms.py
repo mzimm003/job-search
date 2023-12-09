@@ -19,7 +19,7 @@ class Request:
         self.data = '' if data is None else data
 
     def getOrg(self):
-        orgName = self.url.lstrip('https://')
+        orgName = self.url.removeprefix('https://')
         orgName = orgName[:orgName.find('/')]
         return orgName
 
