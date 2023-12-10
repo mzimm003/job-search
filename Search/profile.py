@@ -43,7 +43,6 @@ class Profile:
         self.search : Search = search
         self.currentPosts : Dict[str,'Posting'] = {}
         self.historicalPosts : Dict[str,'Posting'] = {}
-        self.ignorablePosts : Set[str] = set()
         self.jobCount = 0
 
     @classmethod
@@ -54,26 +53,23 @@ class Profile:
         self.search = search
 
     def samplePosts(self):
-        jobs = self.search.listJobLinks()
-        return self.search.getJobDesc(jobs[0])
+        jobs = self.search.listJobLinks(sample=True)
+        return self.search.getFullDescriptionsByLinks(jobs[0])
     
     def gatherPosts(self):
-        #################REDOOOING##################3
         self.currentPosts = {}
-        jobs = self.search.listJobLinks()
+        jobs = self.search.getJobDescs()
         for job in jobs:
-            if not job in self.ignorablePosts:
-                post = Posting.bySearch(self.getSearch())
-                relevantJob = False
-                for phrs in self.search.searchPhrases:
-                    if (post.getTitle().lower().find(phrs.lower()) != -1 or
-                        post.getDesc().lower().find(phrs.lower()) != -1):
-                        relevantJob = True
-                        break
-                if relevantJob:
-                    self.currentPosts[self.name+'-'+str(self.jobCount)] = post
-                    self.jobCount += 1
-                self.ignorablePosts.add(job)
+            post = Posting.bySearchDesc(job)
+            relevantJob = False
+            for phrs in self.search.searchPhrases:
+                if (post.getTitle().lower().find(phrs.lower()) != -1 or
+                    post.getDesc().lower().find(phrs.lower()) != -1):
+                    relevantJob = True
+                    break
+            if relevantJob:
+                self.currentPosts[self.name+'-'+str(self.jobCount)] = post
+                self.jobCount += 1
         self.historicalPosts.update(self.currentPosts)
     
     def getSearch(self):
@@ -86,8 +82,8 @@ class Profile:
     def CLEARALLPOSTS(self):
         self.currentPosts = {}
         self.historicalPosts = {}
-        self.ignorablePosts = set()
         self.jobCount = 0
+        self.search.CLEARALLPOSTS()
 
 
 class Posting:
@@ -108,8 +104,8 @@ class Posting:
         self.status = Posting.STATUS.Pending
     
     @classmethod
-    def bySearch(cls, search:Search) -> 'Posting':
-        pass
+    def bySearchDesc(cls, searchDesc:Dict) -> 'Posting':
+        return cls(**searchDesc)
 
     def getStatus(self):
         return self.status.name
