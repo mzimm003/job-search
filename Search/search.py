@@ -2,6 +2,7 @@ from typing import (
     Callable,
     List,
     Dict,
+    Set,
 )
 from functools import partial
 from Search.utility import (
@@ -16,6 +17,7 @@ from typing import (
     List,
     Callable
 )
+from enum import Enum
 import requests_html
 
 import urllib.parse
@@ -52,41 +54,33 @@ def get_legacy_session():
 class Search:
     def __init__(
             self,
-            orgName:str = '',
-            findJobsMethod:Plan = None,
-            viewJobMethod:List[Callable] = None,
+            orgName:str = None,
             searchReq:Request = None,
             searchPhrases:List[str] = None,
-            jobKeyId:str = '',
-            pageKeyId:str = 'page',
-            descKey:str = '',
-            jobListPathKeyIds:str = '',
-            jobLinkKeyId:str = '',
-            jobListRetType:str = '',
-            jobDescRetType:str = '',
+            jobKeyId:str = None,
+            pageKeyId:str = None,
+            titleKey:str = None,
+            descKey:str = None,
+            jobListPathKeyIds:str = None,
+            jobListRetType:str = None,
+            jobDescRetType:str = None,
+            listRenReq:bool = None,
+            descRenReq:bool = None,
             ) -> None:
-        self.orgName = orgName
-        self.findJobsMethod = Plan() if findJobsMethod is None else findJobsMethod
-        self.viewJobMethod = [] if viewJobMethod is None else viewJobMethod
+        self.orgName = '' if orgName is None else orgName
         self.searchReq = Request() if searchReq is None else searchReq
         self.searchPhrases = [] if searchPhrases is None else searchPhrases
-        self.jobKeyId = jobKeyId
-        self.pageKeyId = pageKeyId
-        self.descKey = descKey
-        self.jobListPathKeyIds = jobListPathKeyIds
-        self.jobLinkKeyId = jobLinkKeyId
-        self.jobListRetType = jobListRetType
-        self.jobDescRetType = jobDescRetType
-
-        self.retType = '' if retType is None else retType
-        self.renReq = False if renReq is None else renReq
         self.jobKeyId = '' if jobKeyId is None else jobKeyId
-        self.pageKeyId = '' if pageKeyId is None else pageKeyId
-        self.jobListPathKeyIds = [] if jobListPathKeyIds is None else jobListPathKeyIds
-        self.jobLinkKeyId = '' if jobLinkKeyId is None else jobLinkKeyId
-        self.descKey = '' if descKey is None else descKey
+        self.pageKeyId = 'page' if pageKeyId is None else pageKeyId
         self.titleKey = '' if titleKey is None else titleKey
+        self.descKey = '' if descKey is None else descKey
+        self.jobListPathKeyIds = [] if jobListPathKeyIds is None else jobListPathKeyIds
+        self.jobListRetType = '' if jobListRetType is None else jobListRetType
+        self.jobDescRetType = '' if jobDescRetType is None else jobDescRetType
+        self.listRenReq = False if listRenReq is None else listRenReq
+        self.descRenReq = False if descRenReq is None else descRenReq
         self.ses = None
+        self.ignorablePosts : Set[str] = set()
 
     @contextmanager
     def __engageSession(self):
@@ -96,37 +90,61 @@ class Search:
         finally:
             self.ses = None
 
-    def __request(self, reqDict:Dict):
+    def __request(self, reqDict:Dict, renReq:bool=False):
         req = self.ses.request(**reqDict)
-        if self.renReq:
+        if renReq:
             req.html.render()
         return req
 
-    def getJobLinks(
+    def CLEARALLPOSTS(self):
+        self.ignorablePosts = set()
+
+    def getJobDescs(
+            self,):
+        links = self.listJobLinks()
+        relevantLinks = [l for l in links if not l in self.ignorablePosts]
+        self.ignorablePosts.update(links)
+        return self.getFullDescriptionsByLinks(relevantLinks)
+
+    def listJobLinks(self, sample=False) -> List[str]:
+        '''
+        return ...string links?... to job postings
+        '''
+        jobs = set()
+        for srchPhrs in self.searchPhrases:
+            reqDict = self.searchReq.getRequestDict(srchPhrs)
+            links = self.getJobLinksByRequestDict(reqDict)
+            jobs.update(links)
+            if sample and jobs:
+                break
+        return list(jobs)
+
+    def getJobLinksByRequestDict(
             self,
             reqDict:Dict,
             followPages:bool=True):
         l = []
         with self.__engageSession():
-            wp = self.__request(reqDict)
-            if self.retType == 'html':
+            wp = self.__request(reqDict, self.listRenReq)
+            if self.jobListRetType == 'html':
                 for link in wp.html.absolute_links:
                     if self.jobKeyId in link:
                         l.append(link)
                     if followPages and self.pageKeyId in link:
                         pageq = urllib.parse.urlparse(link).query
-                        l.extend(self.getJobLinks(
+                        l.extend(self.getJobLinksByRequestDict(
                                     self.__request({'method':'GET',
                                                     'url':wp.url+'&'+pageq,
-                                                    'headers':wp.request.headers}),
+                                                    'headers':wp.request.headers},
+                                                    self.listRenReq),
                                     False))
-            elif self.retType == 'json':
+            elif self.jobListRetType == 'json':
                 jobList = wp.json()
                 jobLinks = []
                 for k in self.jobListPathKeyIds:
                     jobList = jobList[k]
                 for job in jobList:
-                    jobLinks.append(job[self.jobLinkKeyId])
+                    jobLinks.append(job[self.jobKeyId])
         return l
     
     def peekLinks(
@@ -135,29 +153,35 @@ class Search:
             ):
         l = None
         with self.__engageSession():
-            wp = self.__request(reqDict)
-            if self.retType == 'html':
+            wp = self.__request(reqDict, self.listRenReq)
+            if self.jobListRetType == 'html':
                 l = [l for l in wp.html.links]
-            elif self.retType == 'json':
+            elif self.jobListRetType == 'json':
                 pass
         return l
 
-    def __getJobDescByHTML(self,
-        wpResp:requests_html.HTMLResponse):
-        return wpResp.html.find(self.descKey)[0].text
+    def __getJobInfoByHTML(self,
+        wpResp:requests_html.HTMLResponse,
+        key:str):
+        return wpResp.html.find(key)[0].text
     
-    def __getJobTitleByHTML(self,
-        wpResp:requests_html.HTMLResponse):
-        return wpResp.html.find(self.titleKey)[0].text
+    def __getJobInfoByJSON(self,
+        wpResp:requests_html.HTMLResponse,
+        key:str):
+        raise NotImplementedError
 
-    def __getFullDescByHTML(self,
+    def __getFullDesc(self,
         wpResp:requests_html.HTMLResponse):
-        return {
-            'title':self.__getJobTitleByHTML(wpResp),
-            'desc':self.__getJobDescByHTML(wpResp)
-        }
+        fullDesc = {
+            'title':self.__getJobInfoByHTML(wpResp, self.titleKey),
+            'desc':self.__getJobInfoByHTML(wpResp, self.descKey),
+            } if self.jobDescRetType else {
+            'title':self.__getJobInfoByJSON(wpResp, self.titleKey),
+            'desc':self.__getJobInfoByJSON(wpResp, self.descKey),
+            }
+        return fullDesc
 
-    def getFullDescriptions(
+    def getFullDescriptionsByLinks(
             self,
             links:List[str],
             ):
@@ -171,82 +195,86 @@ class Search:
                     'url':link,
                     'headers':{"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/119.0"}
                     }
-                wp = self.__request(reqDict)
+                wp = self.__request(reqDict, self.descRenReq)
                 descDict = {'link':link}
-                descDict.update(self.__getFullDescByHTML(wp))
+                descDict.update(self.__getFullDesc(wp))
                 descs.append(descDict)
         return descs
-    
-    # def updatePlan(self, plan:Plan, planStr:str):
-    #     if planStr == 'listJobs':
-    #         self.findJobsMethod = plan
-    #     elif planStr == 'jobDesc':
-    #         self.viewJobMethod = plan
-
-    # def listJobLinks(self) -> List[str]:
-    #     '''
-    #     return ...string links?... to job postings
-    #     '''
-    #     jobs = set()
-    #     for srchPhrs in self.searchPhrases:
-    #         reqDict = self.searchReq.getRequestDict(srchPhrs)
-    #         wp = self.findJobsMethod.executePlan(reqDict, **self.__dict__)
-            
-    #         jobs.update()
-    #     return list(jobs)
-    
-    # def getJobDesc(self, link) -> List[str]:
-    #     reqDict = {
-    #         'method':'GET',
-    #         'url':link,
-    #         'headers':{"User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/119.0"}
-    #         }
-    #     return self.viewJobMethod.executePlan(reqDict, **self.__dict__)
 
     def addSearchPhrase(self, phrase):
         self.searchPhrases.append(phrase)
     
     def setJobKeyId(self, key:str):
         self.jobKeyId = key
-        # for f in self.listJobsMethod:
-        #     if 'jobKeyword' in f.keywords:
-        #         f.keywords['jobKeyword'] = key
+    
+    def getJobKeyId(self):
+        ret = self.jobKeyId
+        if self.jobListRetType == 'json':
+            ret += ';'+','.join(self.jobListPathKeyIds)
+        return self.jobKeyId
 
     def setPageKeyId(self, key:str):
         self.pageKeyId = key
-        # for f in self.listJobsMethod:
-        #     if 'pageKeyword' in f.keywords:
-        #         f.keywords['pageKeyword'] = key
+    
+    def getPageKeyId(self):
+        return self.pageKeyId
 
     def setDescKey(self, key:str):
         self.descKey = key
-        # for f in self.getJobDescMethod:
-        #     if 'keyword' in f.keywords:
-        #         f.keywords['keyword'] = key
+
+    def getDescKey(self):
+        return self.descKey
+
+    def getTitleKey(self):
+        return self.descKey
+    
+    def getSearchPhrases(self):
+        return self.searchPhrases
+    
+    def getJobDescRetType(self):
+        return self.jobDescRetType
+    
+    def getJobListRetType(self):
+        return self.jobListRetType
+    
+    def getListRenReq(self):
+        return self.listRenReq
+    
+    def getDescRenReq(self):
+        return self.descRenReq
 
     def setSearchPhrases(self, phrases:List[str]):
         self.searchPhrases = phrases
 
     @classmethod
-    def byOptions(
+    def bySearchRequest(
         cls,
         searchReq:Request,
-        jobKeyId = '',
-        pageKeyId = 'page',
-        descKey = '',
-        jobListRetType = 'html',
-        jobListRenReq = False,
-        jobDescRetType = 'html',
-        jobDescRenReq = False,
+        jobKeyId = None,
+        pageKeyId = None,
+        titleKey = None,
+        descKey = None,
+        jobListRetType = None,
+        jobDescRetType = None,
+        listRenReq = False,
+        descRenReq = False,
         ):
-        obj = cls()
-        obj.orgName = searchReq.getOrg()
-        obj.jobKeyId = jobKeyId
-        obj.pageKeyId = pageKeyId
-        obj.findJobsMethod = Plan.requestByOptions(renReq=jobListRenReq)
-        obj.searchReq = searchReq
-        obj.descKey = descKey
-        obj.viewJobMethod = Plan.requestByOptions(renReq=jobDescRenReq)
-        obj.jobListRetType = jobListRetType
-        obj.jobDescRetType = jobDescRetType
-        return obj
+        creationDict = dict(
+            orgName = searchReq.getOrg(),
+            searchReq = searchReq,
+            jobKeyId = jobKeyId,
+            pageKeyId = pageKeyId,
+            titleKey = titleKey,
+            descKey = descKey,
+            jobListRetType = jobListRetType,
+            jobDescRetType = jobDescRetType,
+            listRenReq = listRenReq,
+            descRenReq = descRenReq,)
+        
+        if jobListRetType == 'json':
+            jobKeyId, jobListPathKeyIds = jobKeyId.split(';')
+            jobListPathKeyIds = jobListPathKeyIds.split(',')
+            creationDict['jobKeyId'] = jobKeyId
+            creationDict['jobListPathKeyIds'] = jobListPathKeyIds
+
+        return cls(**creationDict)

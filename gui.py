@@ -7,14 +7,13 @@ from Search.profile import (
     Portfolio
 )
 from Search.search import Search
-from Search.utility import Plan
 
 import pickle
 import webbrowser
 from pathlib import Path
 from typing import (
     List,
-    Dict
+    Dict,
 )
 from functools import partial
 import traceback
@@ -108,7 +107,8 @@ class GUI:
     def openProfile(self, values):
         for p in values[GUI.MAINELEMENTS.PROFILES]:
             w = self.profileWindow(p)
-            self.refreshSearchConfigVisual(w, self.portfolio.profiles[p])
+            if p != GUI.NEWPROFILE:
+                self.refreshSearchConfigVisual(w, self.portfolio.profiles[p])
 
     def openJobs(self, values):
         w = self.jobsWindow()
@@ -136,18 +136,25 @@ class GUI:
         ADDSEARCH = enum.auto()
         COMMITPHRASES = enum.auto()
         MLSEARCHHEADER = enum.auto()
-        RETTYPE = enum.auto()
-        RETTYPESHTML = enum.auto()
-        RETTYPESJSON = enum.auto()
-        RENREQ = enum.auto()
-        RENREQNO = enum.auto()
-        RENREQYES = enum.auto()
+        SEARCHRETTYPE = enum.auto()
+        SEARCHRETTYPESHTML = enum.auto()
+        SEARCHRETTYPESJSON = enum.auto()
+        DESCRETTYPE = enum.auto()
+        DESCRETTYPESHTML = enum.auto()
+        DESCRETTYPESJSON = enum.auto()
+        SEARCHRENREQ = enum.auto()
+        SEARCHRENREQNO = enum.auto()
+        SEARCHRENREQYES = enum.auto()
+        DESCRENREQ = enum.auto()
+        DESCRENREQNO = enum.auto()
+        DESCRENREQYES = enum.auto()
         LINKS = enum.auto()
         DESCRIPTION = enum.auto()
         PEEKDESC = enum.auto()
         JOBKEYID = enum.auto()
         PAGEKEYID = enum.auto()
-        HTMLKEY = enum.auto()
+        HTMLTITLEKEY = enum.auto()
+        HTMLDESCKEY = enum.auto()
         SEARCHPHRASES = enum.auto()
         METHOD = enum.auto()
         METHUP = enum.auto()
@@ -168,15 +175,18 @@ class GUI:
         search_spec_layout = sg.Col([
             [sg.Col([[sg.Text("Link Keyword Identifying Jobs")],
                      [sg.Text("Link Keyword Identifying Pages")],
-                     [sg.Text("Job Desc HTML Element")]]),
+                     [sg.Text("Job Title HTML Element")],
+                     [sg.Text("Job Desc HTML Element")]
+                     ]),
              sg.Col([[sg.In(key=GUI.PROFILEELEMENTS.JOBKEYID, expand_x=True)],
                      [sg.In(key=GUI.PROFILEELEMENTS.PAGEKEYID, default_text='page', expand_x=True)],
-                     [sg.In(key=GUI.PROFILEELEMENTS.HTMLKEY, default_text='type.class; e.g. article.node--type-job-opportunity', expand_x=True)],
+                     [sg.In(key=GUI.PROFILEELEMENTS.HTMLTITLEKEY, default_text='type.class; e.g. div.main', expand_x=True)],
+                     [sg.In(key=GUI.PROFILEELEMENTS.HTMLDESCKEY, default_text='type.class; e.g. div.main', expand_x=True)],
                      ])],
             ], expand_x=True, expand_y=True)
         config_layout = sg.Col([
             [header_panel_layout],
-            [search_spec_layout],
+            # [search_spec_layout],
             ],expand_x=True, expand_y=True)
         
         link_peek_layout = sg.Col([
@@ -197,12 +207,21 @@ class GUI:
 
         method_layout = sg.Col([
             [sg.Text("Method Configuration")],
-            [sg.Text("Expected Reponse:"),
-             sg.Radio("HTML", GUI.PROFILEELEMENTS.RETTYPE, key = GUI.PROFILEELEMENTS.RETTYPESHTML, default=True),
-             sg.Radio("JSON", GUI.PROFILEELEMENTS.RETTYPE, key = GUI.PROFILEELEMENTS.RETTYPESJSON)],
-            [sg.Text("Render Required:"),
-             sg.Radio("No", GUI.PROFILEELEMENTS.RENREQ, key = GUI.PROFILEELEMENTS.RENREQNO, default=True),
-             sg.Radio("Yes", GUI.PROFILEELEMENTS.RENREQ, key = GUI.PROFILEELEMENTS.RENREQYES)],
+            [sg.Col([[sg.Text("Expected Reponses-")],
+             [sg.Text("  of Search:"),
+             sg.Radio("HTML", GUI.PROFILEELEMENTS.SEARCHRETTYPE, key = GUI.PROFILEELEMENTS.SEARCHRETTYPESHTML, default=True),
+             sg.Radio("JSON", GUI.PROFILEELEMENTS.SEARCHRETTYPE, key = GUI.PROFILEELEMENTS.SEARCHRETTYPESJSON)],
+             [sg.Text("  of Descriptions:"),
+             sg.Radio("HTML", GUI.PROFILEELEMENTS.DESCRETTYPE, key = GUI.PROFILEELEMENTS.DESCRETTYPESHTML, default=True),
+             sg.Radio("JSON", GUI.PROFILEELEMENTS.DESCRETTYPE, key = GUI.PROFILEELEMENTS.DESCRETTYPESJSON)]])],
+            [sg.Col([[sg.Text("Render Required-")],
+             [sg.Text("  of Search:"),
+             sg.Radio("No", GUI.PROFILEELEMENTS.SEARCHRENREQ, key = GUI.PROFILEELEMENTS.SEARCHRENREQNO, default=True),
+             sg.Radio("Yes", GUI.PROFILEELEMENTS.SEARCHRENREQ, key = GUI.PROFILEELEMENTS.SEARCHRENREQYES)],
+             [sg.Text("  of Descriptions:"),
+             sg.Radio("No", GUI.PROFILEELEMENTS.DESCRENREQ, key = GUI.PROFILEELEMENTS.DESCRENREQNO, default=True),
+             sg.Radio("Yes", GUI.PROFILEELEMENTS.DESCRENREQ, key = GUI.PROFILEELEMENTS.DESCRENREQYES),]])],
+             [search_spec_layout],
             # [sg.Listbox([], expand_x=True, expand_y=True, key=GUI.PROFILEELEMENTS.METHOD)],
             # [sg.Button('/\\', key=GUI.PROFILEELEMENTS.METHUP, font=('bitstream charter',8)), sg.Button('\\/', key=GUI.PROFILEELEMENTS.METHDOWN, font=('bitstream charter',8))],
         ],expand_x=True, expand_y=True)
@@ -277,28 +296,49 @@ class GUI:
         selection = self.__newWindow('Search Phrase',lyt,modal=True, modalEvents=modEv, modalCloseSet=set([CNFBTTN]))
         return selection
     
-    def __getSearch(self, values, searchReq)->Search:
+    def __getSearch(self, values, searchReq:Request)->Search:
         methConfig = self.__getMethodConfig(values=values)
-        search = Search.byOptions(searchReq=searchReq,
-                                  jobListRetType=methConfig['retType'],
-                                  jobListRenReq=methConfig['renReq'],
-                                  jobKeyId=values[GUI.PROFILEELEMENTS.JOBKEYID],
-                                  pageKeyId=values[GUI.PROFILEELEMENTS.PAGEKEYID],
-                                  descKey=values[GUI.PROFILEELEMENTS.HTMLKEY])
+        search = Search.bySearchRequest(
+            searchReq=searchReq,
+            jobKeyId=methConfig[GUI.PROFILEELEMENTS.JOBKEYID],
+            pageKeyId=methConfig[GUI.PROFILEELEMENTS.PAGEKEYID],
+            titleKey=methConfig[GUI.PROFILEELEMENTS.HTMLTITLEKEY],
+            descKey=methConfig[GUI.PROFILEELEMENTS.HTMLDESCKEY],
+            jobListRetType=methConfig[GUI.PROFILEELEMENTS.SEARCHRETTYPE],
+            jobDescRetType=methConfig[GUI.PROFILEELEMENTS.DESCRETTYPE],
+            listRenReq=methConfig[GUI.PROFILEELEMENTS.SEARCHRENREQ],
+            descRenReq=methConfig[GUI.PROFILEELEMENTS.DESCRENREQ],
+            )
         return search
     
     def __getMethodConfig(self, values):
-        retTypeSelection = [
-            values[GUI.PROFILEELEMENTS.RETTYPESHTML],
-            values[GUI.PROFILEELEMENTS.RETTYPESJSON],
+        retTypes = ['html','json']
+        searchRetTypeSelection = [
+            values[GUI.PROFILEELEMENTS.SEARCHRETTYPESHTML],
+            values[GUI.PROFILEELEMENTS.SEARCHRETTYPESJSON],
         ].index(True)
-        renReqSelection = [
-            values[GUI.PROFILEELEMENTS.RENREQNO],
-            values[GUI.PROFILEELEMENTS.RENREQYES],
+        descRetTypeSelection = [
+            values[GUI.PROFILEELEMENTS.DESCRETTYPESHTML],
+            values[GUI.PROFILEELEMENTS.DESCRETTYPESJSON],
+        ].index(True)
+        renReqs = [False, True]
+        searchRenReqSelection = [
+            values[GUI.PROFILEELEMENTS.SEARCHRENREQNO],
+            values[GUI.PROFILEELEMENTS.SEARCHRENREQYES],
+        ].index(True)
+        descRenReqSelection = [
+            values[GUI.PROFILEELEMENTS.DESCRENREQNO],
+            values[GUI.PROFILEELEMENTS.DESCRENREQYES],
         ].index(True)
         return {
-            'retType': ['html', 'json'][retTypeSelection],
-            'renReq': [False, True][renReqSelection]
+            GUI.PROFILEELEMENTS.SEARCHRETTYPE: retTypes[searchRetTypeSelection],
+            GUI.PROFILEELEMENTS.DESCRETTYPE: retTypes[descRetTypeSelection],
+            GUI.PROFILEELEMENTS.SEARCHRENREQ: renReqs[searchRenReqSelection],
+            GUI.PROFILEELEMENTS.DESCRENREQ: renReqs[descRenReqSelection],
+            GUI.PROFILEELEMENTS.JOBKEYID:values[GUI.PROFILEELEMENTS.JOBKEYID],
+            GUI.PROFILEELEMENTS.PAGEKEYID:values[GUI.PROFILEELEMENTS.PAGEKEYID],
+            GUI.PROFILEELEMENTS.HTMLTITLEKEY:values[GUI.PROFILEELEMENTS.HTMLTITLEKEY],
+            GUI.PROFILEELEMENTS.HTMLDESCKEY:values[GUI.PROFILEELEMENTS.HTMLDESCKEY],
         }
     
     def __getSearchRequest(self, values, window:sg.Window, srchPhrs)->Request:
@@ -311,27 +351,27 @@ class GUI:
         if values[GUI.PROFILEELEMENTS.MLSEARCHHEADER] == '':
             self.errorMsg("Must fill the search parameter 'Header'")
         else:
-            search_header = self.__getSearchRequest(values, window, 'NEVERINAMILLIONYEARS')
-            methConfig = self.__getMethodConfig(values=values)
-            search = Plan.peekLinks(**methConfig)
-            links = search.executePlan(initInp=search_header.getRequestDict('NEVERINAMILLIONYEARS'))
+            fake_key = 'NEVERINAMILLIONYEARS'
+            search_header = self.__getSearchRequest(values, window, fake_key)
+            search = self.__getSearch(values, search_header)
+            links = search.peekLinks(reqDict=search_header.getRequestDict(fake_key))
             window[GUI.PROFILEELEMENTS.LINKS].update(links)
 
     def addSearch(self, values, window:sg.Window, profile:Profile):
         if profile.name == GUI.NEWPROFILE and '' in {values[GUI.PROFILEELEMENTS.MLSEARCHHEADER],
                   values[GUI.PROFILEELEMENTS.JOBKEYID],
                   values[GUI.PROFILEELEMENTS.PAGEKEYID],
-                  values[GUI.PROFILEELEMENTS.HTMLKEY]}:
+                  values[GUI.PROFILEELEMENTS.HTMLDESCKEY]}:
             self.errorMsg("Must fill the search parameters:\n\t\u2022'Header'\n\t\u2022'Job Indetifying Keyword'\n\t\u2022'Page Indetifying Keyword'\n\t\u2022Description HTML Element")
         elif '' in {values[GUI.PROFILEELEMENTS.JOBKEYID],
                   values[GUI.PROFILEELEMENTS.PAGEKEYID],
-                  values[GUI.PROFILEELEMENTS.HTMLKEY]}:
+                  values[GUI.PROFILEELEMENTS.HTMLDESCKEY]}:
             self.errorMsg("Must fill the search parameters:\n\t\u2022'Job Indetifying Keyword'\n\t\u2022'Page Indetifying Keyword'\n\t\u2022Description HTML Element")
         else:
             if '' == values[GUI.PROFILEELEMENTS.MLSEARCHHEADER]:
                 profile.search.setJobKeyId(values[GUI.PROFILEELEMENTS.JOBKEYID])
                 profile.search.setPageKeyId(values[GUI.PROFILEELEMENTS.PAGEKEYID])
-                profile.search.setDescKey(values[GUI.PROFILEELEMENTS.HTMLKEY])
+                profile.search.setDescKey(values[GUI.PROFILEELEMENTS.HTMLDESCKEY])
             else:
                 srchPhrs = self.searchPhraseWindow(values[GUI.PROFILEELEMENTS.MLSEARCHHEADER])
                 searchHeader = self.__getSearchRequest(values, window, srchPhrs)
@@ -350,10 +390,19 @@ class GUI:
             self.refreshSearchConfigVisual(window, profile)
     
     def refreshSearchConfigVisual(self, window:sg.Window, profile:Profile):
-        window[GUI.PROFILEELEMENTS.JOBKEYID].update(profile.search.jobKeyId)
-        window[GUI.PROFILEELEMENTS.PAGEKEYID].update(profile.search.pageKeyId)
-        window[GUI.PROFILEELEMENTS.HTMLKEY].update(profile.search.descKey)
-        window[GUI.PROFILEELEMENTS.SEARCHPHRASES].update('\n'.join(profile.search.searchPhrases))
+        window[GUI.PROFILEELEMENTS.JOBKEYID].update(profile.search.getJobKeyId())
+        window[GUI.PROFILEELEMENTS.PAGEKEYID].update(profile.search.getPageKeyId())
+        window[GUI.PROFILEELEMENTS.HTMLTITLEKEY].update(profile.search.getTitleKey())
+        window[GUI.PROFILEELEMENTS.HTMLDESCKEY].update(profile.search.getDescKey())
+        window[GUI.PROFILEELEMENTS.SEARCHPHRASES].update('\n'.join(profile.search.getSearchPhrases()))
+        window[[GUI.PROFILEELEMENTS.SEARCHRETTYPESHTML,
+                GUI.PROFILEELEMENTS.SEARCHRETTYPESJSON][['html','json'].index(profile.search.getJobListRetType())]].update(True)
+        window[[GUI.PROFILEELEMENTS.DESCRETTYPESHTML,
+                GUI.PROFILEELEMENTS.DESCRETTYPESJSON][['html','json'].index(profile.search.getJobDescRetType())]].update(True)
+        window[[GUI.PROFILEELEMENTS.SEARCHRENREQNO,
+                GUI.PROFILEELEMENTS.SEARCHRENREQYES][profile.search.getListRenReq()]].update(True)
+        window[[GUI.PROFILEELEMENTS.DESCRENREQNO,
+                GUI.PROFILEELEMENTS.DESCRENREQYES][profile.search.getDescRenReq()]].update(True)
 
     def errorMsg(self, message):
         lyt = [
@@ -505,7 +554,7 @@ class GUI:
 
 def main(LLM_API_Key=''):
     port:Portfolio = Portfolio()
-    port.addProfile(Profile(GUI.NEWPROFILE, Search(descKey='type.class; e.g. article.node--type-job-opportunity')))
+    port.addProfile(Profile(GUI.NEWPROFILE))
     if Path('Search/profiles.pkl').exists():
         with open('Search/profiles.pkl', 'rb') as f:
             port = pickle.load(f)
