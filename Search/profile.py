@@ -9,22 +9,24 @@ import enum
 class Portfolio:
     def __init__(self) -> None:
         self.profiles:Dict[str, 'Profile'] = {}
-        self.currentPosts = {}
-        self.historicalPosts = {}
+        self.currentPosts:Dict[str, Dict] = {}
+        self.historicalPosts:Dict[str, Dict] = {}
     
     def addProfile(self, prof:'Profile'):
         self.profiles[prof.name] = prof
     
     def getNewJobs(self):
         for n, p in self.profiles.items():
-            p.gatherPosts()
-            self.currentPosts.update(p.currentPosts)
-            self.historicalPosts.update(p.historicalPosts)
+            self.getNewJobsByProfile(p)
 
     def getNewJobsByProfile(self, prof:'Profile'):
         prof.gatherPosts()
-        self.currentPosts.update(prof.currentPosts)
-        self.historicalPosts.update(prof.historicalPosts)
+        if not prof.name in self.currentPosts:
+            self.currentPosts[prof.name] = {}
+        if not prof.name in self.historicalPosts:
+            self.historicalPosts[prof.name] = {}
+        self.currentPosts[prof.name].update(prof.currentPosts)
+        self.historicalPosts[prof.name].update(prof.historicalPosts)
 
     def CLEARALLPOSTS(self):
         for k, p in self.profiles.items():
@@ -54,7 +56,9 @@ class Profile:
 
     def samplePosts(self):
         jobs = self.search.listJobLinks(sample=True)
-        return self.search.getFullDescriptionsByLinks(jobs[0])
+        sampleJobSearchDesc = self.search.getFullDescriptionsByLinks(jobs[0])[0]
+        post = Posting.bySearchDesc(sampleJobSearchDesc)
+        return post.displayDescription()
     
     def gatherPosts(self):
         self.currentPosts = {}
@@ -68,7 +72,7 @@ class Profile:
                     relevantJob = True
                     break
             if relevantJob:
-                self.currentPosts[self.name+'-'+str(self.jobCount)] = post
+                self.currentPosts[post.getTitle()+'-'+str(self.jobCount)] = post
                 self.jobCount += 1
         self.historicalPosts.update(self.currentPosts)
     
@@ -127,6 +131,9 @@ class Posting:
     
     def getTitle(self):
         return self.title
+    
+    def displayDescription(self):
+        return self.getTitle() + '\n' + self.getDesc()
 
     def process(self):
         pass

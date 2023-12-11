@@ -185,7 +185,7 @@ class Search:
             self,
             links:List[str],
             ):
-        if isinstance(link, str):
+        if isinstance(links, str):
             links = [links]
         descs = []
         with self.__engageSession():
@@ -225,8 +225,11 @@ class Search:
     def getDescKey(self):
         return self.descKey
 
+    def setTitleKey(self, key:str):
+        self.titleKey = key
+
     def getTitleKey(self):
-        return self.descKey
+        return self.titleKey
     
     def getSearchPhrases(self):
         return self.searchPhrases

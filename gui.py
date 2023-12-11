@@ -159,7 +159,8 @@ class GUI:
         METHOD = enum.auto()
         METHUP = enum.auto()
         METHDOWN = enum.auto()
-
+        CSSSELECTORHELP = enum.auto()
+        CSSSELECTORHELP1 = enum.auto()
 
         #Job Elements
         JOBSTATUSUPDATE = enum.auto()
@@ -175,8 +176,8 @@ class GUI:
         search_spec_layout = sg.Col([
             [sg.Col([[sg.Text("Link Keyword Identifying Jobs")],
                      [sg.Text("Link Keyword Identifying Pages")],
-                     [sg.Text("Job Title HTML Element")],
-                     [sg.Text("Job Desc HTML Element")]
+                     [sg.Text("Job Title HTML Element"),sg.Text("(help)",key=GUI.PROFILEELEMENTS.CSSSELECTORHELP,enable_events=True,font=('default',7,'underline')),sg.Push()],
+                     [sg.Text("Job Desc HTML Element"),sg.Text("(help)",key=GUI.PROFILEELEMENTS.CSSSELECTORHELP1,enable_events=True,font=('default',7,'underline')),sg.Push()]
                      ]),
              sg.Col([[sg.In(key=GUI.PROFILEELEMENTS.JOBKEYID, expand_x=True)],
                      [sg.In(key=GUI.PROFILEELEMENTS.PAGEKEYID, default_text='page', expand_x=True)],
@@ -262,8 +263,12 @@ class GUI:
             GUI.PROFILEELEMENTS.GETCURRENTJOBS:partial(self.getCurrentJobs, window=w, profile=self.portfolio.profiles[profile]),
             GUI.PROFILEELEMENTS.JOBSDETAIL:partial(self.openJobDetail, window=w, profile=self.portfolio.profiles[profile]),
             GUI.PROFILEELEMENTS.PEEKDESC:partial(self.peekDesc, window=w, profile=self.portfolio.profiles[profile]),
+            GUI.PROFILEELEMENTS.CSSSELECTORHELP:partial(self.cssSelectorHelp, window=w, profile=self.portfolio.profiles[profile]),
+            GUI.PROFILEELEMENTS.CSSSELECTORHELP1:partial(self.cssSelectorHelp, window=w, profile=self.portfolio.profiles[profile]),
             }
         return w
+    def cssSelectorHelp(self, values, window:sg.Window, profile:Profile):
+        webbrowser.open('https://www.w3schools.com/cssref/css_selectors.php')
 
     def peekDesc(self, values, window:sg.Window, profile:Profile):
         if profile.name == GUI.NEWPROFILE:
@@ -371,6 +376,7 @@ class GUI:
             if '' == values[GUI.PROFILEELEMENTS.MLSEARCHHEADER]:
                 profile.search.setJobKeyId(values[GUI.PROFILEELEMENTS.JOBKEYID])
                 profile.search.setPageKeyId(values[GUI.PROFILEELEMENTS.PAGEKEYID])
+                profile.search.setTitleKey(values[GUI.PROFILEELEMENTS.HTMLTITLEKEY])
                 profile.search.setDescKey(values[GUI.PROFILEELEMENTS.HTMLDESCKEY])
             else:
                 srchPhrs = self.searchPhraseWindow(values[GUI.PROFILEELEMENTS.MLSEARCHHEADER])
@@ -422,6 +428,7 @@ class GUI:
         JOBDESC = enum.auto()
     class JOBLISTHEADINGS(enum.Enum):
         Job = enum.auto()
+        Company = enum.auto()
         Status = enum.auto()
     @staticmethod
     def JOBSWINDOWLAYOUT(profiles:List[str], default_prof:str):
@@ -483,7 +490,8 @@ class GUI:
         if values[GUI.JOBELEMENTS.JOBLIST]:
             jobs = window[GUI.JOBELEMENTS.JOBLIST].get()
             dispJob = jobs[values[GUI.JOBELEMENTS.JOBLIST][0]][GUI.JOBLISTHEADINGS.Job.value-1]
-            window[GUI.JOBELEMENTS.JOBDESC].update(value=self.portfolio.historicalPosts[dispJob].desc)
+            dispCompany = jobs[values[GUI.JOBELEMENTS.JOBLIST][0]][GUI.JOBLISTHEADINGS.Company.value-1]
+            window[GUI.JOBELEMENTS.JOBDESC].update(value=self.portfolio.historicalPosts[dispCompany][dispJob].displayDescription())
     
     def setJobAsApplied(self, values, window:sg.Window):
         jobs = window[GUI.JOBELEMENTS.JOBLIST].get()
@@ -499,18 +507,23 @@ class GUI:
 
     def refreshJobList(self, values, window:sg.Window):
         def filt(k):
-            return values[GUI.JOBELEMENTS.FILTER] == '' or values[GUI.JOBELEMENTS.FILTER] in k[GUI.JOBLISTHEADINGS.Job.value-1]
+            return values[GUI.JOBELEMENTS.FILTER] == '' or values[GUI.JOBELEMENTS.FILTER] in k[0]
         tableDict = filter(filt, self.portfolio.historicalPosts.items())
         currentSelection = set()
         if GUI.JOBELEMENTS.JOBLIST in values:
             currentSelection = window[GUI.JOBELEMENTS.JOBLIST].get()
-            currentSelection = set(currentSelection[x][GUI.JOBLISTHEADINGS.Job.value-1] for x in values[GUI.JOBELEMENTS.JOBLIST])
+            currentSelection = set(
+                (currentSelection[x][GUI.JOBLISTHEADINGS.Job.value-1], currentSelection[x][GUI.JOBLISTHEADINGS.Company.value-1])
+                for x in values[GUI.JOBELEMENTS.JOBLIST])
         newSelection = []
         table = []
-        for i, (j, p) in enumerate(tableDict):
-            table.append([j, p.getStatus()])
-            if j in currentSelection:
-                newSelection.append(i)
+        idxTrack = 0
+        for i, (c_name, c_jobs) in enumerate(tableDict):
+            for j, (p_name, p_job) in enumerate(c_jobs.items()):
+                table.append([p_name, c_name, p_job.getStatus()])
+                if (p_name, c_name) in currentSelection:
+                    newSelection.append(idxTrack)
+                idxTrack += 1
         window[GUI.JOBELEMENTS.JOBLIST].update(values=table, select_rows=newSelection)
 
     def run(self):
