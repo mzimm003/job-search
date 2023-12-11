@@ -18,6 +18,7 @@ from typing import (
 from functools import partial
 import traceback
 import enum
+import tkinter
 
 class GUI:
     def __init__(self, portfolio:Portfolio, LLM_API_Key:str) -> None:
@@ -101,9 +102,19 @@ class GUI:
             GUI.MAINELEMENTS.OPENPROFILE:self.openProfile,
             sg.WIN_X_EVENT:self.endProgram,
             GUI.MAINELEMENTS.JOBSDETAIL:self.openJobs,
-            GUI.MAINELEMENTS.ALLNEWJOBS:... #TODO
+            GUI.MAINELEMENTS.ALLNEWJOBS:partial(self.getCurrentJobs, window=w),
             }
     
+    def getAllNewJobs(self, values, window:sg.Window):
+        windowUpdate = ''
+        numNewJobs = 0 
+        for n, p in self.portfolio.profiles.items():
+            self.getCurrentJobs(values=values, window=None, profile=p, updateProfWin=False)
+            numNewJobs += len(p.currentPosts)
+            windowUpdate += '\n{}:\n\t'.format(p.name)
+            '\n\t'.join(p.currentPosts.keys())
+        window[GUI.PROFILEELEMENTS.JOBSTATUSUPDATE].update('{} new jobs found:{}'.format(numNewJobs, windowUpdate))
+
     def openProfile(self, values):
         for p in values[GUI.MAINELEMENTS.PROFILES]:
             w = self.profileWindow(p)
@@ -267,6 +278,7 @@ class GUI:
             GUI.PROFILEELEMENTS.CSSSELECTORHELP1:partial(self.cssSelectorHelp, window=w, profile=self.portfolio.profiles[profile]),
             }
         return w
+    
     def cssSelectorHelp(self, values, window:sg.Window, profile:Profile):
         webbrowser.open('https://www.w3schools.com/cssref/css_selectors.php')
 
@@ -279,9 +291,10 @@ class GUI:
     def openJobDetail(self, values, window:sg.Window, profile:Profile):
         self.jobsWindow(profile.name)
 
-    def getCurrentJobs(self, values, window:sg.Window, profile:Profile):
+    def getCurrentJobs(self, values, window:sg.Window, profile:Profile, updateProfWin=True):
         self.portfolio.getNewJobsByProfile(profile)
-        window[GUI.PROFILEELEMENTS.JOBSTATUSUPDATE].update('{} new jobs found:\n{}'.format(len(profile.currentPosts), '\n'.join(profile.currentPosts.keys())))
+        if updateProfWin:
+            window[GUI.PROFILEELEMENTS.JOBSTATUSUPDATE].update('{} new jobs found:\n{}'.format(len(profile.currentPosts), '\n'.join(profile.currentPosts.keys())))
 
     def commitPhrases(self, values, window:sg.Window, profile:Profile):
         srchPhrss = values[GUI.PROFILEELEMENTS.SEARCHPHRASES].split('\n')
@@ -295,8 +308,15 @@ class GUI:
             [sg.Text('Please highlight and confirm the\nsearch phrase in the url:')],
             [sg.Multiline(search, key=SRCH, size=(100,20)), sg.Button(CNFBTTN)]
         ]
+        def getSlctn(w,e,v):
+            s = None
+            try:
+                s = w[SRCH].Widget.selection_get()
+            except tkinter.TclError:
+                s = 'NOSEARCHKEYWORD-REPLACETHIS'
+            return s
         modEv = {
-            CNFBTTN:lambda w,e,v:w[SRCH].Widget.selection_get()
+            CNFBTTN:getSlctn
         }
         selection = self.__newWindow('Search Phrase',lyt,modal=True, modalEvents=modEv, modalCloseSet=set([CNFBTTN]))
         return selection

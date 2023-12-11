@@ -142,6 +142,8 @@ class Search:
                 jobList = wp.json()
                 jobLinks = []
                 for k in self.jobListPathKeyIds:
+                    if isinstance(jobList, list):
+                        k = int(k)
                     jobList = jobList[k]
                 for job in jobList:
                     jobLinks.append(job[self.jobKeyId])
@@ -206,12 +208,15 @@ class Search:
     
     def setJobKeyId(self, key:str):
         self.jobKeyId = key
+        if self.jobListRetType == 'json':
+            self.jobKeyId, jobListPathKeyIds = self.jobKeyId.split(';')
+            self.jobListPathKeyIds = jobListPathKeyIds.split(',')
     
     def getJobKeyId(self):
         ret = self.jobKeyId
         if self.jobListRetType == 'json':
             ret += ';'+','.join(self.jobListPathKeyIds)
-        return self.jobKeyId
+        return ret
 
     def setPageKeyId(self, key:str):
         self.pageKeyId = key
