@@ -10,10 +10,15 @@ class Portfolio:
     def __init__(self) -> None:
         self.profiles:Dict[str, 'Profile'] = {}
         self.currentPosts:Dict[str, Dict] = {}
-        self.historicalPosts:Dict[str, Dict] = {}
+        self.historicalPosts:Dict[str, Dict[str, Posting]] = {}
     
     def addProfile(self, prof:'Profile'):
         self.profiles[prof.name] = prof
+
+    def renameProfile(self, prof:'Profile', name:str):
+        del self.profiles[prof.name]
+        prof.setName(name)
+        self.profiles[name] = prof
     
     def getNewJobs(self):
         for n, p in self.profiles.items():
@@ -76,6 +81,12 @@ class Profile:
                 self.jobCount += 1
         self.historicalPosts.update(self.currentPosts)
     
+    def getName(self):
+        return self.name
+    
+    def setName(self, name:str):
+        self.name = name
+    
     def getSearch(self):
         return self.search
 
@@ -110,6 +121,9 @@ class Posting:
     @classmethod
     def bySearchDesc(cls, searchDesc:Dict) -> 'Posting':
         return cls(**searchDesc)
+    
+    def getLink(self):
+        return self.link
 
     def getStatus(self):
         return self.status.name

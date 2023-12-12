@@ -7,6 +7,7 @@ from Search.profile import (
     Portfolio
 )
 from Search.search import Search
+from Resumes.llm import LLM
 
 import pickle
 import webbrowser
@@ -21,11 +22,11 @@ import enum
 import tkinter
 
 class GUI:
-    def __init__(self, portfolio:Portfolio, LLM_API_Key:str) -> None:
+    def __init__(self, portfolio:Portfolio, llm:LLM) -> None:
         self.windows:Dict[str, sg.Window] = {}
         self.primaryWindow:sg.Window = None
         self.portfolio:Portfolio = portfolio
-        self.LLM_API_Key:str = LLM_API_Key
+        self.llm:LLM = llm
 
     def __newWindow(self, name, layout, modal=False, enable_close_attempted_event=False, resizable=False, modalEvents={}, modalCloseSet=set(['OK'])):
         loc = (None, None)
@@ -102,7 +103,7 @@ class GUI:
             GUI.MAINELEMENTS.OPENPROFILE:self.openProfile,
             sg.WIN_X_EVENT:self.endProgram,
             GUI.MAINELEMENTS.JOBSDETAIL:self.openJobs,
-            GUI.MAINELEMENTS.ALLNEWJOBS:partial(self.getCurrentJobs, window=w),
+            GUI.MAINELEMENTS.ALLNEWJOBS:partial(self.getAllNewJobs, window=w),
             }
     
     def getAllNewJobs(self, values, window:sg.Window):
@@ -112,8 +113,8 @@ class GUI:
             self.getCurrentJobs(values=values, window=None, profile=p, updateProfWin=False)
             numNewJobs += len(p.currentPosts)
             windowUpdate += '\n{}:\n\t'.format(p.name)
-            '\n\t'.join(p.currentPosts.keys())
-        window[GUI.PROFILEELEMENTS.JOBSTATUSUPDATE].update('{} new jobs found:{}'.format(numNewJobs, windowUpdate))
+            windowUpdate += '\n\t'.join(p.currentPosts.keys())
+        window[GUI.MAINELEMENTS.NEWJOBS].update('{} new jobs found:{}'.format(numNewJobs, windowUpdate))
 
     def openProfile(self, values):
         for p in values[GUI.MAINELEMENTS.PROFILES]:
@@ -172,6 +173,7 @@ class GUI:
         METHDOWN = enum.auto()
         CSSSELECTORHELP = enum.auto()
         CSSSELECTORHELP1 = enum.auto()
+        PROFILENAME = enum.auto()
 
         #Job Elements
         JOBSTATUSUPDATE = enum.auto()
@@ -181,6 +183,7 @@ class GUI:
     def PROFILESWINDOWLAYOUT():
         #CONFIGURATION LAYOUT
         header_panel_layout = sg.Col([
+            [sg.Text("Profile Name:"),sg.In(key=GUI.PROFILEELEMENTS.PROFILENAME, expand_x=True)],
             [sg.Text("Sample Request")],
             [sg.Multiline(key=GUI.PROFILEELEMENTS.MLSEARCHHEADER, size=(50,20), expand_x=True, expand_y=True)],
             ], expand_x=True, expand_y=True)
@@ -247,7 +250,7 @@ class GUI:
         #TAB LAYOUT
         search_panel_layout = [
             [config_layout, method_layout,peek_layout],
-            [sg.Button('Commit Search', key=GUI.PROFILEELEMENTS.ADDSEARCH)],
+            [sg.Button('Commit Changes', key=GUI.PROFILEELEMENTS.ADDSEARCH)],
             [search_phrase_layout]
             ]
         job_panel_layout = [
@@ -256,7 +259,7 @@ class GUI:
             [sg.Button('View Jobs', key=GUI.PROFILEELEMENTS.JOBSDETAIL)]
         ]
         tabs = sg.TabGroup([[
-            sg.Tab('Search Config', search_panel_layout),
+            sg.Tab('Config', search_panel_layout),
             sg.Tab('Jobs', job_panel_layout)]], expand_x=True, expand_y=True)
 
         return [
@@ -323,8 +326,12 @@ class GUI:
     
     def __getSearch(self, values, searchReq:Request)->Search:
         methConfig = self.__getMethodConfig(values=values)
+        orgName = None
+        if methConfig[GUI.PROFILEELEMENTS.PROFILENAME] != '':
+            orgName = methConfig[GUI.PROFILEELEMENTS.PROFILENAME]
         search = Search.bySearchRequest(
             searchReq=searchReq,
+            orgName=orgName,
             jobKeyId=methConfig[GUI.PROFILEELEMENTS.JOBKEYID],
             pageKeyId=methConfig[GUI.PROFILEELEMENTS.PAGEKEYID],
             titleKey=methConfig[GUI.PROFILEELEMENTS.HTMLTITLEKEY],
@@ -364,6 +371,7 @@ class GUI:
             GUI.PROFILEELEMENTS.PAGEKEYID:values[GUI.PROFILEELEMENTS.PAGEKEYID],
             GUI.PROFILEELEMENTS.HTMLTITLEKEY:values[GUI.PROFILEELEMENTS.HTMLTITLEKEY],
             GUI.PROFILEELEMENTS.HTMLDESCKEY:values[GUI.PROFILEELEMENTS.HTMLDESCKEY],
+            GUI.PROFILEELEMENTS.PROFILENAME:values[GUI.PROFILEELEMENTS.PROFILENAME],
         }
     
     def __getSearchRequest(self, values, window:sg.Window, srchPhrs)->Request:
@@ -398,6 +406,8 @@ class GUI:
                 profile.search.setPageKeyId(values[GUI.PROFILEELEMENTS.PAGEKEYID])
                 profile.search.setTitleKey(values[GUI.PROFILEELEMENTS.HTMLTITLEKEY])
                 profile.search.setDescKey(values[GUI.PROFILEELEMENTS.HTMLDESCKEY])
+                if profile.getName() != values[GUI.PROFILEELEMENTS.PROFILENAME]:
+                    window = self.__updatePortfolio(values, window, profile, renameProfile=True)
             else:
                 srchPhrs = self.searchPhraseWindow(values[GUI.PROFILEELEMENTS.MLSEARCHHEADER])
                 searchHeader = self.__getSearchRequest(values, window, srchPhrs)
@@ -408,14 +418,22 @@ class GUI:
                     profile.defineSearch(search)
                 else:
                     profile = Profile.bySearch(search)
-                    self.portfolio.addProfile(profile)
-                    self.primaryWindow[GUI.MAINELEMENTS.PROFILES].update([k for k in self.portfolio.profiles.keys()])
-                    tmpwin = self.profileWindow(profile.name)
-                    self.__closeWindow(window)
-                    window = tmpwin
+                    window = self.__updatePortfolio(values, window, profile)
             self.refreshSearchConfigVisual(window, profile)
     
+    def __updatePortfolio(self, values, window:sg.Window, profile:Profile, renameProfile:bool=False):
+        if renameProfile:
+            self.portfolio.renameProfile(profile, values[GUI.PROFILEELEMENTS.PROFILENAME])
+        else:
+            self.portfolio.addProfile(profile)
+        self.primaryWindow[GUI.MAINELEMENTS.PROFILES].update([k for k in self.portfolio.profiles.keys()])
+        tmpwin = self.profileWindow(profile.name)
+        self.__closeWindow(window)
+        window = tmpwin
+        return window
+
     def refreshSearchConfigVisual(self, window:sg.Window, profile:Profile):
+        window[GUI.PROFILEELEMENTS.PROFILENAME].update(profile.getName())
         window[GUI.PROFILEELEMENTS.JOBKEYID].update(profile.search.getJobKeyId())
         window[GUI.PROFILEELEMENTS.PAGEKEYID].update(profile.search.getPageKeyId())
         window[GUI.PROFILEELEMENTS.HTMLTITLEKEY].update(profile.search.getTitleKey())
@@ -503,8 +521,10 @@ class GUI:
     
     def viewWebsite(self, values, window:sg.Window):
         jobs = window[GUI.JOBELEMENTS.JOBLIST].get()
+        dispJob = jobs[values[GUI.JOBELEMENTS.JOBLIST][0]][GUI.JOBLISTHEADINGS.Job.value-1]
+        dispCompany = jobs[values[GUI.JOBELEMENTS.JOBLIST][0]][GUI.JOBLISTHEADINGS.Company.value-1]
         for v in values[GUI.JOBELEMENTS.JOBLIST]:
-            webbrowser.open(self.portfolio.historicalPosts[jobs[v][GUI.JOBLISTHEADINGS.Job.value-1]].link)
+            webbrowser.open(self.portfolio.historicalPosts[dispCompany][dispJob].getLink())
     
     def displayJobDesc(self, values, window:sg.Window):
         if values[GUI.JOBELEMENTS.JOBLIST]:
@@ -591,7 +611,10 @@ def main(LLM_API_Key=''):
     if Path('Search/profiles.pkl').exists():
         with open('Search/profiles.pkl', 'rb') as f:
             port = pickle.load(f)
-    gui = GUI(portfolio=port, LLM_API_Key=LLM_API_Key)
+    llm = None
+    if LLM_API_Key:
+        llm = LLM(LLM_API_Key)
+    gui = GUI(portfolio=port, llm=llm)
 
     gui.mainWindow()
 
