@@ -4,7 +4,6 @@ from typing import (
 )
 import enum
 import datetime
-import pylatex as tx
 class Resume:
     def __init__(
             self,
@@ -35,9 +34,26 @@ class Resume:
         s = []
         s.append(self.name)
         for sec in self.sections:
-            s.append(sec.title)
-            for 
-
+            s.append(sec.title+":")
+            for con in sec.content:
+                s.append('\t'+con.subject)
+                csv = []
+                for elm in con.elements:
+                    if isinstance(elm, str):
+                        if con.type == Subsection.Types.SKILL:
+                            csv.append(elm)
+                        else:
+                            s.append('\t\t-'+elm)
+                    else:
+                        if elm.type == Subsection.Types.PROJECT or elm.type == Subsection.Types.POSITION:
+                            s.append('\t\t'+elm.subject)
+                            for e in elm.elements:
+                                s.append('\t\t\t-'+e)
+                        elif elm.type == Subsection.Types.SKILL:
+                            s.append('\t\t'+elm.subject+', '+', '.join([e for e in elm.elements]))
+                if csv:
+                    s.append('\t\t'+', '.join(csv))
+        return '\n'.join(s)
 
 class Section:
     def __init__(

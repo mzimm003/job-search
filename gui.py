@@ -464,6 +464,7 @@ class GUI:
         FILTER = enum.auto()
         JOBLIST = enum.auto()
         JOBDESC = enum.auto()
+        RESUME = enum.auto()
     class JOBLISTHEADINGS(enum.Enum):
         Job = enum.auto()
         Company = enum.auto()
@@ -483,7 +484,7 @@ class GUI:
             ], expand_x=True, expand_y=True)
         GPT_layout = sg.Col([
             [sg.Text("LLM Tips")],
-            [sg.Multiline(expand_x=True, expand_y=True)],
+            [sg.Multiline(key=GUI.JOBELEMENTS.RESUME, expand_x=True, expand_y=True)],
             [sg.Button('Get Tips', key=GUI.JOBELEMENTS.GETTIPS)],
             ], expand_x=True, expand_y=True)
         resume_layout = sg.Col([
@@ -514,11 +515,19 @@ class GUI:
             GUI.JOBELEMENTS.IGNORE:partial(self.setJobAsIgnore, window=w),
             GUI.JOBELEMENTS.JOBLIST:partial(self.displayJobDesc, window=w),
             GUI.JOBELEMENTS.VIEWSITE:partial(self.viewWebsite, window=w),
-            GUI.JOBELEMENTS.GETTIPS:...,#TODO
+            GUI.JOBELEMENTS.GETTIPS:partial(self.getTips, window=w),
             GUI.JOBELEMENTS.UPDATERESUME:...,#TODO
             }
         return w
     
+    def getTips(self, values, window:sg.Window):
+        r = None
+        with open('./Resumes/main/resume.pkl','rb') as f:
+            r = pickle.load(f)
+        window[GUI.JOBELEMENTS.RESUME].update(r.asString())
+
+        pass
+
     def viewWebsite(self, values, window:sg.Window):
         jobs = window[GUI.JOBELEMENTS.JOBLIST].get()
         dispJob = jobs[values[GUI.JOBELEMENTS.JOBLIST][0]][GUI.JOBLISTHEADINGS.Job.value-1]
