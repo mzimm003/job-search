@@ -133,20 +133,18 @@ class Search:
                     if followPages and self.pageKeyId in link:
                         pageq = urllib.parse.urlparse(link).query
                         l.extend(self.getJobLinksByRequestDict(
-                                    self.__request({'method':'GET',
-                                                    'url':wp.url+'&'+pageq,
-                                                    'headers':wp.request.headers},
-                                                    self.listRenReq),
-                                    False))
+                            {'method':'GET',
+                             'url':wp.url+'&'+pageq,
+                             'headers':wp.request.headers},
+                             False))
             elif self.jobListRetType == 'json':
                 jobList = wp.json()
-                jobLinks = []
                 for k in self.jobListPathKeyIds:
                     if isinstance(jobList, list):
                         k = int(k)
                     jobList = jobList[k]
                 for job in jobList:
-                    jobLinks.append(job[self.jobKeyId])
+                    l.append(job[self.jobKeyId])
         return l
     
     def peekLinks(
@@ -258,6 +256,7 @@ class Search:
     def bySearchRequest(
         cls,
         searchReq:Request,
+        orgName = None,
         jobKeyId = None,
         pageKeyId = None,
         titleKey = None,
@@ -268,7 +267,7 @@ class Search:
         descRenReq = False,
         ):
         creationDict = dict(
-            orgName = searchReq.getOrg(),
+            orgName = searchReq.getOrg() if orgName is None else orgName,
             searchReq = searchReq,
             jobKeyId = jobKeyId,
             pageKeyId = pageKeyId,
