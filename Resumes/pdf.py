@@ -7,19 +7,8 @@ from pathlib import Path
 from pylatex import (
     Document,
     Section,
-    MiniPage,
     Itemize,
-    Subsection,
     Command,
-    TextBlock,
-    Tabular,
-    Math,
-    TikZ,
-    Axis,
-    Plot,
-    Figure,
-    Matrix,
-    Alignat
 )
 from pylatex.base_classes import (
     Environment,
@@ -32,15 +21,7 @@ from pylatex.utils import (
 from pylatex.package import (
     Package
 )
-from pylatex.position import (
-    Center
-)
-from pylatex.basic import (
-    LargeText,
-    HugeText,
-)
 import pickle
-import datetime
 from typing import List
 
 
