@@ -15,6 +15,9 @@ class Portfolio:
     def addProfile(self, prof:'Profile'):
         self.profiles[prof.name] = prof
 
+    def getProfiles(self):
+        return self.profiles
+
     def renameProfile(self, prof:'Profile', name:str):
         del self.profiles[prof.name]
         prof.setName(name)
