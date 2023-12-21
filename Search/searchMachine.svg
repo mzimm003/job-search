@@ -23,9 +23,9 @@
      inkscape:pagecheckerboard="0"
      inkscape:document-units="mm"
      showgrid="false"
-     inkscape:zoom="0.6405233"
-     inkscape:cx="120.99482"
-     inkscape:cy="890.67798"
+     inkscape:zoom="1.8116735"
+     inkscape:cx="737.16374"
+     inkscape:cy="1207.9991"
      inkscape:window-width="1920"
      inkscape:window-height="958"
      inkscape:window-x="0"
@@ -35,7 +35,8 @@
      inkscape:showpageshadow="2"
      inkscape:deskcolor="#d1d1d1"
      inkscape:connector-spacing="0"
-     inkscape:snap-global="false" />
+     inkscape:snap-global="false"
+     showguides="false" />
   <defs
      id="defs2">
     <rect
@@ -49,6 +50,13 @@
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
      id="layer1">
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:0.5;stroke-linecap:square"
+       id="rect1-0-3"
+       width="103.06188"
+       height="66.091789"
+       x="142.3663"
+       y="285.78937" />
     <rect
        style="fill:#ffffff;stroke:#000000;stroke-width:0.5;stroke-linecap:square"
        id="rect1-5-3"
@@ -429,47 +437,11 @@
          style="font-size:2.82222px;stroke-width:0.264583"
          x="153.84431"
          y="213.85609">Company</tspan></text>
-    <text
-       xml:space="preserve"
-       style="font-size:4.23333px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
-       x="214.03262"
-       y="207.36301"
-       id="text26"><tspan
-         sodipodi:role="line"
-         id="tspan26"
-         style="stroke-width:0.264583"
-         x="214.03262"
-         y="207.36301">Chat GPT Tips</tspan></text>
-    <rect
-       style="fill:none;stroke:#000000;stroke-width:0.499999;stroke-linecap:square"
-       id="rect26"
-       width="32.426285"
-       height="29.947842"
-       x="212.35324"
-       y="203.64534" />
-    <text
-       xml:space="preserve"
-       style="font-size:4.23333px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
-       x="218.9624"
-       y="231.11473"
-       id="text27"><tspan
-         sodipodi:role="line"
-         id="tspan27"
-         style="stroke-width:0.264583"
-         x="218.9624"
-         y="231.11473">Get Tips</tspan></text>
-    <ellipse
-       style="fill:none;stroke:#000000;stroke-width:0.499999;stroke-linecap:square"
-       id="path27"
-       cx="227.53369"
-       cy="229.56572"
-       rx="8.9843531"
-       ry="2.168637" />
     <rect
        style="fill:none;stroke:#000000;stroke-width:0.499998;stroke-linecap:square"
        id="rect27"
        width="30.154379"
-       height="54.525723"
+       height="46.070419"
        x="181.33936"
        y="203.64532" />
     <text
@@ -494,54 +466,6 @@
          style="stroke-width:0.264583"
          x="217.89638"
          y="240.20236" /></text>
-    <rect
-       style="fill:none;stroke:#000000;stroke-width:0.499999;stroke-linecap:square"
-       id="rect29"
-       width="32.426285"
-       height="34.078579"
-       x="212.31989"
-       y="234.21278" />
-    <rect
-       style="fill:none;stroke:#000000;stroke-width:0.499999;stroke-linecap:square"
-       id="rect30"
-       width="31.187063"
-       height="25.197496"
-       x="212.93948"
-       y="235.06602" />
-    <text
-       xml:space="preserve"
-       style="font-size:4.23333px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
-       x="214.5918"
-       y="239.58273"
-       id="text30"><tspan
-         sodipodi:role="line"
-         id="tspan30"
-         style="stroke-width:0.264583"
-         x="214.5918"
-         y="239.58273">Resume </tspan><tspan
-         sodipodi:role="line"
-         style="stroke-width:0.264583"
-         x="214.5918"
-         y="244.87439"
-         id="tspan31">Changes</tspan></text>
-    <text
-       xml:space="preserve"
-       style="font-size:4.23333px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
-       x="211.50728"
-       y="265.46463"
-       id="text32"><tspan
-         sodipodi:role="line"
-         id="tspan32"
-         style="stroke-width:0.264583"
-         x="211.50728"
-         y="265.46463">Update Resume</tspan></text>
-    <ellipse
-       style="fill:none;stroke:#000000;stroke-width:0.499999;stroke-linecap:square"
-       id="path32"
-       cx="228.53304"
-       cy="264.05737"
-       rx="17.039289"
-       ry="1.7555631" />
     <text
        xml:space="preserve"
        transform="scale(0.26458333)"
@@ -557,7 +481,7 @@
          id="tspan34"
          style="stroke-width:0.264583"
          x="181.172"
-         y="255.12558">View Website?</tspan></text>
+         y="255.12558">View Website</tspan></text>
     <ellipse
        style="fill:none;stroke:#000000;stroke-width:0.499999;stroke-linecap:square"
        id="path34"
@@ -583,6 +507,32 @@
        cy="264.16064"
        rx="8.6745481"
        ry="2.4784422" />
+    <path
+       style="fill:none;fill-rule:evenodd;stroke:#ff0000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 230.4357,225.2038 -23.64273,60.58557"
+       id="path17319"
+       inkscape:connector-type="polyline"
+       inkscape:connector-curvature="0"
+       inkscape:connection-start="#path35-7"
+       inkscape:connection-end="#rect1-0-3" />
+    <ellipse
+       style="fill:#ffffff;stroke:#000000;stroke-width:0.499999;stroke-linecap:square"
+       id="path35-7"
+       cx="230.4357"
+       cy="225.2038"
+       rx="17.497053"
+       ry="2.4784422" />
+    <text
+       xml:space="preserve"
+       style="font-size:4.23333px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       x="213.97133"
+       y="226.23648"
+       id="text35-3"><tspan
+         sodipodi:role="line"
+         id="tspan35-6"
+         style="stroke-width:0.264583"
+         x="213.97133"
+         y="226.23648">Create Resume</tspan></text>
     <text
        xml:space="preserve"
        style="font-size:4.23333px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
@@ -594,6 +544,101 @@
          style="stroke-width:0.264583"
          x="164.40334"
          y="208.60222">Filter</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:3.36105px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       x="212.2484"
+       y="292.61563"
+       id="text27-6"
+       transform="scale(1.005615,0.99441635)"><tspan
+         sodipodi:role="line"
+         id="tspan27-0"
+         style="stroke-width:0.264583"
+         x="212.2484"
+         y="292.61563">Get AI Tips</tspan></text>
+    <ellipse
+       style="fill:none;stroke:#000000;stroke-width:0.499999;stroke-linecap:square"
+       id="path27-6"
+       cx="223.12851"
+       cy="289.75882"
+       rx="10.018126"
+       ry="1.7121729" />
+    <rect
+       style="fill:none;stroke:#000000;stroke-width:0.499999;stroke-linecap:square"
+       id="rect29-8"
+       width="100.57939"
+       height="58.044991"
+       x="143.48526"
+       y="286.8801" />
+    <text
+       xml:space="preserve"
+       style="font-size:3.31348px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       x="152.53831"
+       y="291.47644"
+       id="text30-9"><tspan
+         sodipodi:role="line"
+         style="stroke-width:0.264583"
+         x="152.53831"
+         y="291.47644"
+         id="tspan31-0">Resume</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:3.3977px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       x="188.95186"
+       y="291.46045"
+       id="text30-9-6"><tspan
+         sodipodi:role="line"
+         style="stroke-width:0.264583"
+         x="188.95186"
+         y="291.46045"
+         id="tspan31-0-2">Revisions</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:3.04048px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       x="172.02618"
+       y="291.24686"
+       id="text30-9-6-9"><tspan
+         sodipodi:role="line"
+         style="stroke-width:0.264583"
+         x="172.02618"
+         y="291.24686"
+         id="tspan31-0-2-3">Keep</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:4.23333px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       x="146.07611"
+       y="349.96054"
+       id="text32-2"><tspan
+         sodipodi:role="line"
+         id="tspan32-3"
+         style="stroke-width:0.264583"
+         x="146.07611"
+         y="349.96054">Update Resume</tspan></text>
+    <ellipse
+       style="fill:none;stroke:#000000;stroke-width:0.499999;stroke-linecap:square"
+       id="path32-7"
+       cx="163.10187"
+       cy="348.55328"
+       rx="17.039289"
+       ry="1.7555631" />
+    <text
+       xml:space="preserve"
+       style="font-size:4.23333px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       x="181.55423"
+       y="350.00323"
+       id="text32-2-3"><tspan
+         sodipodi:role="line"
+         id="tspan32-3-9"
+         style="stroke-width:0.264583"
+         x="181.55423"
+         y="350.00323">Generate PDF</tspan></text>
+    <ellipse
+       style="fill:none;stroke:#000000;stroke-width:0.499999;stroke-linecap:square"
+       id="path32-7-4"
+       cx="196.25571"
+       cy="348.59598"
+       rx="15.045132"
+       ry="1.7555631" />
     <path
        style="fill:none;fill-rule:evenodd;stroke:#ff0000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
        d="M 42.467331,221.41258 5.8598251,235.34641"
@@ -1097,5 +1142,380 @@
        inkscape:connector-curvature="0"
        inkscape:connection-start="#path10-0"
        inkscape:connection-end="#rect1-5-4" />
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:0.999998;stroke-linecap:round;stroke-dashoffset:45.3543;stroke-opacity:0.976518;paint-order:stroke fill markers"
+       id="rect11071"
+       width="20.296387"
+       height="5.2175827"
+       x="149.77242"
+       y="295.15216" />
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:0.999998;stroke-linecap:round;stroke-dashoffset:45.3543;stroke-opacity:0.976518;paint-order:stroke fill markers"
+       id="rect11071-9"
+       width="20.296387"
+       height="5.2175827"
+       x="149.77242"
+       y="299.91165" />
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:0.999998;stroke-linecap:round;stroke-dashoffset:45.3543;stroke-opacity:0.976518;paint-order:stroke fill markers"
+       id="rect11071-4"
+       width="20.296387"
+       height="5.2175827"
+       x="149.77242"
+       y="304.67111" />
+    <text
+       xml:space="preserve"
+       style="font-size:2.11667px;line-height:1.25;font-family:'Liberation Sans';-inkscape-font-specification:'Liberation Sans';letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;stroke-width:0.264583"
+       x="151.37302"
+       y="303.12097"
+       id="text41482-3"><tspan
+         sodipodi:role="line"
+         id="tspan41480-6"
+         style="stroke-width:0.264583"
+         x="151.37302"
+         y="303.12097">Experience 2</tspan></text>
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:0.999998;stroke-linecap:round;stroke-dashoffset:45.3543;stroke-opacity:0.976518;paint-order:stroke fill markers"
+       id="rect11071-8"
+       width="20.296387"
+       height="5.2175827"
+       x="149.77242"
+       y="314.19009" />
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:0.999998;stroke-linecap:round;stroke-dashoffset:45.3543;stroke-opacity:0.976518;paint-order:stroke fill markers"
+       id="rect11071-45"
+       width="20.296387"
+       height="5.2175827"
+       x="149.77242"
+       y="318.94958" />
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:0.999998;stroke-linecap:round;stroke-dashoffset:45.3543;stroke-opacity:0.976518;paint-order:stroke fill markers"
+       id="rect11071-0"
+       width="20.296387"
+       height="5.2175827"
+       x="149.77242"
+       y="323.70905" />
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:0.999998;stroke-linecap:round;stroke-dashoffset:45.3543;stroke-opacity:0.976518;paint-order:stroke fill markers"
+       id="rect11071-6"
+       width="20.296387"
+       height="5.2175827"
+       x="149.77242"
+       y="333.228" />
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:0.999998;stroke-linecap:round;stroke-dashoffset:45.3543;stroke-opacity:0.976518;paint-order:stroke fill markers"
+       id="rect11071-1"
+       width="20.296387"
+       height="5.2175827"
+       x="149.77242"
+       y="337.98752" />
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:0.999998;stroke-linecap:round;stroke-dashoffset:45.3543;stroke-opacity:0.976518;paint-order:stroke fill markers"
+       id="rect11071-63"
+       width="20.296387"
+       height="5.2175827"
+       x="186.69696"
+       y="295.15216" />
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:0.999998;stroke-linecap:round;stroke-dashoffset:45.3543;stroke-opacity:0.976518;paint-order:stroke fill markers"
+       id="rect11071-9-2"
+       width="20.296387"
+       height="5.2175827"
+       x="186.69696"
+       y="299.91165" />
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:0.999998;stroke-linecap:round;stroke-dashoffset:45.3543;stroke-opacity:0.976518;paint-order:stroke fill markers"
+       id="rect11071-4-0"
+       width="20.296387"
+       height="5.2175827"
+       x="186.69696"
+       y="304.67111" />
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:0.999998;stroke-linecap:round;stroke-dashoffset:45.3543;stroke-opacity:0.976518;paint-order:stroke fill markers"
+       id="rect11071-8-1"
+       width="20.296387"
+       height="5.2175827"
+       x="186.69696"
+       y="314.19009" />
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:0.999998;stroke-linecap:round;stroke-dashoffset:45.3543;stroke-opacity:0.976518;paint-order:stroke fill markers"
+       id="rect11071-45-5"
+       width="20.296387"
+       height="5.2175827"
+       x="186.69696"
+       y="318.94958" />
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:0.999998;stroke-linecap:round;stroke-dashoffset:45.3543;stroke-opacity:0.976518;paint-order:stroke fill markers"
+       id="rect11071-0-5"
+       width="20.296387"
+       height="5.2175827"
+       x="186.69696"
+       y="323.70905" />
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:0.999998;stroke-linecap:round;stroke-dashoffset:45.3543;stroke-opacity:0.976518;paint-order:stroke fill markers"
+       id="rect11071-6-7"
+       width="20.296387"
+       height="5.2175827"
+       x="186.69696"
+       y="333.228" />
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:0.999998;stroke-linecap:round;stroke-dashoffset:45.3543;stroke-opacity:0.976518;paint-order:stroke fill markers"
+       id="rect11071-1-6"
+       width="20.296387"
+       height="5.2175827"
+       x="186.69696"
+       y="337.98752" />
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-dashoffset:45.3543;stroke-opacity:0.976518;paint-order:stroke fill markers"
+       id="rect11485"
+       width="1.4037979"
+       height="1.5055666"
+       x="174.81534"
+       y="297.93539" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 174.12768,297.78916 c 0.49636,0.27947 1.03732,0.4083 1.38764,1.18102 0.4007,-1.50626 1.15342,-2.60904 2.2871,-3.27519"
+       id="path11520"
+       sodipodi:nodetypes="ccc" />
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-dashoffset:45.3543;stroke-opacity:0.976518;paint-order:stroke fill markers"
+       id="rect11485-0"
+       width="1.4037979"
+       height="1.5055666"
+       x="174.81534"
+       y="302.69489" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 174.12768,302.54866 c 0.49636,0.27947 1.03732,0.4083 1.38764,1.18102 0.4007,-1.50626 1.15342,-2.60904 2.2871,-3.27519"
+       id="path11520-6"
+       sodipodi:nodetypes="ccc" />
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-dashoffset:45.3543;stroke-opacity:0.976518;paint-order:stroke fill markers"
+       id="rect11485-9"
+       width="1.4037979"
+       height="1.5055666"
+       x="174.81534"
+       y="307.45435" />
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-dashoffset:45.3543;stroke-opacity:0.976518;paint-order:stroke fill markers"
+       id="rect11485-5"
+       width="1.4037979"
+       height="1.5055666"
+       x="174.81534"
+       y="316.97333" />
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-dashoffset:45.3543;stroke-opacity:0.976518;paint-order:stroke fill markers"
+       id="rect11485-8"
+       width="1.4037979"
+       height="1.5055666"
+       x="174.81534"
+       y="321.73282" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 174.12768,321.58659 c 0.49636,0.27947 1.03732,0.4083 1.38764,1.18102 0.4007,-1.50626 1.15342,-2.60904 2.2871,-3.27519"
+       id="path11520-7"
+       sodipodi:nodetypes="ccc" />
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-dashoffset:45.3543;stroke-opacity:0.976518;paint-order:stroke fill markers"
+       id="rect11485-7"
+       width="1.4037979"
+       height="1.5055666"
+       x="174.81534"
+       y="326.49228" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 174.12768,326.34605 c 0.49636,0.27947 1.03732,0.4083 1.38764,1.18102 0.4007,-1.50626 1.15342,-2.60904 2.2871,-3.27519"
+       id="path11520-27"
+       sodipodi:nodetypes="ccc" />
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-dashoffset:45.3543;stroke-opacity:0.976518;paint-order:stroke fill markers"
+       id="rect11485-94"
+       width="1.4037979"
+       height="1.5055666"
+       x="174.81534"
+       y="336.01123" />
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-dashoffset:45.3543;stroke-opacity:0.976518;paint-order:stroke fill markers"
+       id="rect11485-91"
+       width="1.4037979"
+       height="1.5055666"
+       x="174.81534"
+       y="340.77075" />
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 174.12768,340.62452 c 0.49636,0.27947 1.03732,0.4083 1.38764,1.18102 0.4007,-1.50626 1.15342,-2.60904 2.2871,-3.27519"
+       id="path11520-77"
+       sodipodi:nodetypes="ccc" />
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-dashoffset:45.3543;stroke-opacity:0.976518;paint-order:stroke fill markers"
+       id="rect5391"
+       width="29.661205"
+       height="5.1280484"
+       x="214.12766"
+       y="206.09981" />
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-dashoffset:45.3543;stroke-opacity:0.976518;paint-order:stroke fill markers"
+       id="rect5393"
+       width="27.907309"
+       height="3.154906"
+       x="215.90247"
+       y="211.80164" />
+    <text
+       xml:space="preserve"
+       style="font-size:2.11667px;line-height:1.25;font-family:'Liberation Sans';-inkscape-font-specification:'Liberation Sans';letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;stroke-width:0.264583"
+       x="216.33719"
+       y="209.21823"
+       id="text17111"><tspan
+         sodipodi:role="line"
+         id="tspan17109"
+         style="stroke-width:0.264583"
+         x="216.33719"
+         y="209.21823">Base Resume</tspan></text>
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:0.999998;stroke-linecap:round;stroke-dashoffset:45.3543;stroke-opacity:0.976518;paint-order:stroke fill markers"
+       id="rect11071-63-3"
+       width="20.296387"
+       height="5.2175827"
+       x="213.47054"
+       y="295.15216" />
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:0.999998;stroke-linecap:round;stroke-dashoffset:45.3543;stroke-opacity:0.976518;paint-order:stroke fill markers"
+       id="rect11071-9-2-5"
+       width="20.296387"
+       height="5.2175827"
+       x="213.47054"
+       y="299.91165" />
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:0.999998;stroke-linecap:round;stroke-dashoffset:45.3543;stroke-opacity:0.976518;paint-order:stroke fill markers"
+       id="rect11071-4-0-6"
+       width="20.296387"
+       height="5.2175827"
+       x="213.47054"
+       y="304.67111" />
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:0.999998;stroke-linecap:round;stroke-dashoffset:45.3543;stroke-opacity:0.976518;paint-order:stroke fill markers"
+       id="rect11071-8-1-9"
+       width="20.296387"
+       height="5.2175827"
+       x="213.47054"
+       y="314.19009" />
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:0.999998;stroke-linecap:round;stroke-dashoffset:45.3543;stroke-opacity:0.976518;paint-order:stroke fill markers"
+       id="rect11071-45-5-1"
+       width="20.296387"
+       height="5.2175827"
+       x="213.47054"
+       y="318.94958" />
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:0.999998;stroke-linecap:round;stroke-dashoffset:45.3543;stroke-opacity:0.976518;paint-order:stroke fill markers"
+       id="rect11071-0-5-2"
+       width="20.296387"
+       height="5.2175827"
+       x="213.47054"
+       y="323.70905" />
+    <rect
+       style="fill:#ffffff;stroke:#000000;stroke-width:0.999998;stroke-linecap:round;stroke-dashoffset:45.3543;stroke-opacity:0.976518;paint-order:stroke fill markers"
+       id="rect11071-6-7-0"
+       width="20.296387"
+       height="9.082408"
+       x="213.47054"
+       y="333.228" />
+    <text
+       xml:space="preserve"
+       style="font-size:2.11667px;line-height:1.25;font-family:sans-serif;stroke-width:0.264583"
+       x="215.05331"
+       y="337.31537"
+       id="text30-9-6-7-0"><tspan
+         sodipodi:role="line"
+         style="font-size:2.11667px;stroke-width:0.264583"
+         x="215.05331"
+         y="337.31537"
+         id="tspan31-0-2-7-6">Top 20 relevant</tspan><tspan
+         sodipodi:role="line"
+         style="font-size:2.11667px;stroke-width:0.264583"
+         x="215.05331"
+         y="339.96121"
+         id="tspan47400">skills</tspan></text>
+    <path
+       style="fill:none;stroke:#000000;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 219.54159,294.92792 v 34.12221"
+       id="path19640" />
+    <text
+       xml:space="preserve"
+       style="font-size:2.11667px;line-height:1.25;font-family:'Liberation Sans';-inkscape-font-specification:'Liberation Sans';letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;stroke-width:0.264583"
+       x="213.31543"
+       y="294.02457"
+       id="text22148"><tspan
+         sodipodi:role="line"
+         id="tspan22146"
+         style="stroke-width:0.264583"
+         x="213.31543"
+         y="294.02457">Rating</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:2.11667px;line-height:1.25;font-family:'Liberation Sans';-inkscape-font-specification:'Liberation Sans';letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;stroke-width:0.264583"
+       x="221.23183"
+       y="294.05988"
+       id="text24792"><tspan
+         sodipodi:role="line"
+         id="tspan24790"
+         style="stroke-width:0.264583"
+         x="221.23183"
+         y="294.05988">Key Words</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:2.11667px;line-height:1.25;font-family:'Liberation Sans';-inkscape-font-specification:'Liberation Sans';letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;stroke-width:0.264583"
+       x="145.29219"
+       y="294.19513"
+       id="text33170"><tspan
+         sodipodi:role="line"
+         id="tspan33168"
+         style="stroke-width:0.264583"
+         x="145.29219"
+         y="294.19513">Section A</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:2.11667px;line-height:1.25;font-family:'Liberation Sans';-inkscape-font-specification:'Liberation Sans';letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;stroke-width:0.264583"
+       x="145.52176"
+       y="312.99438"
+       id="text35594"><tspan
+         sodipodi:role="line"
+         id="tspan35592"
+         style="stroke-width:0.264583"
+         x="145.52176"
+         y="312.99438">Section B</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:2.11667px;line-height:1.25;font-family:'Liberation Sans';-inkscape-font-specification:'Liberation Sans';letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;stroke-width:0.264583"
+       x="145.87032"
+       y="332.47971"
+       id="text37856"><tspan
+         sodipodi:role="line"
+         id="tspan37854"
+         style="stroke-width:0.264583"
+         x="145.87032"
+         y="332.47971">Skills Section</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:2.11667px;line-height:1.25;font-family:'Liberation Sans';-inkscape-font-specification:'Liberation Sans';letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;stroke-width:0.264583"
+       x="151.40767"
+       y="298.2399"
+       id="text41482"><tspan
+         sodipodi:role="line"
+         id="tspan41480"
+         style="stroke-width:0.264583"
+         x="151.40767"
+         y="298.2399">Experience 1</tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-size:2.11667px;line-height:1.25;font-family:'Liberation Sans';-inkscape-font-specification:'Liberation Sans';letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;stroke-width:0.264583"
+       x="152.83321"
+       y="308.84589"
+       id="text44067"><tspan
+         sodipodi:role="line"
+         id="tspan44065"
+         style="stroke-width:0.264583"
+         x="152.83321"
+         y="308.84589">...</tspan></text>
   </g>
 </svg>
