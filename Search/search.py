@@ -234,7 +234,9 @@ class Search:
     def getTitleKey(self):
         return self.titleKey
     
-    def getSearchPhrases(self):
+    def getSearchPhrases(self, asString=False):
+        if asString:
+            return '\n'.join(self.searchPhrases)
         return self.searchPhrases
     
     def getJobDescRetType(self):

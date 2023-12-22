@@ -16,6 +16,7 @@ class Module(abc.ABC):
     def __init__(self) -> None:
         super().__init__()
         self.keys = Keys(self.__class__)
+        self.aliasesCreated = []
     @abc.abstractmethod
     def newWindow(self):
         pass
@@ -25,7 +26,12 @@ class Module(abc.ABC):
         pos[1] += offset
         return pos
     def getKey(self, k, withCount=False):
-        return self.keys.getKey(k, withCount)
+        key = self.keys.getKey(k, withCount)
+        self.aliasesCreated.append(key)
+        return key
+    def cleanAliases(self):
+        for a in self.aliasesCreated:
+            dpg.remove_alias(a)
 
 class Keys:
     def __init__(self, cls) -> None:
@@ -64,7 +70,7 @@ class GUIMain(Module):
 
     def newWindow(self):
         tag = self.getKey(GUIMain.ELEMENTS.WINDOW)
-        with dpg.window(tag=tag):
+        with dpg.window(tag=tag, on_close=self.cleanAliases):
             with dpg.group(horizontal=True):
                 with dpg.group(width=500):
                     dpg.add_text("Profiles")
@@ -91,15 +97,9 @@ class GUIMain(Module):
         dpg.set_primary_window(tag, True)
 
     def openProfile(self, sender, app_data, user_data):
-        #TODO
         profile_name = dpg.get_value(self.getKey(GUIMain.ELEMENTS.PROFILES))
         prof_mod = GUIProfile.fromProfile(self.portfolio.getProfiles()[profile_name])
         prof_mod.newWindow()
-
-        # for p in values[GUI.MAINELEMENTS.PROFILES]:
-        #     w = self.profileWindow(p)
-        #     if p != GUI.NEWPROFILE:
-        #         self.refreshSearchConfigVisual(w, self.portfolio.getProfiles()[p])
 
     def openJobs(self, sender, app_data, user_data):
         #TODO
@@ -124,7 +124,7 @@ class GUIMain(Module):
 
 class GUIProfile(Module):
     class OPTIONS:
-        RETTYPE = ["HTML", "JSON"]
+        RETTYPE = ["html", "json"]
         RENREQ = ["No", "Yes"]
     class ELEMENTS(enum.Enum):
         #Config Elements
@@ -173,70 +173,120 @@ class GUIProfile(Module):
     def fromProfile(cls, profile:Profile):
         return cls(profile)
     
+    def getKey(self, k, withCount=False):
+        k = self.profile.getName()+str(k)
+        return super().getKey(k, withCount)
+    
     def newWindow(self):
-        with dpg.window(pos=self.proposePosition()):
-            with dpg.group(horizontal=True):
-                with dpg.group(width=200):
+        column_widths = [200,200,-1]
+        with dpg.window(pos=self.proposePosition(), on_close=self.cleanAliases):
+            with dpg.group():
+                with dpg.group(horizontal=True):
+                    with dpg.group(width=column_widths[0]):
+                        with dpg.group(horizontal=True):
+                            t = dpg.add_text("Profile Name:")
+                            dpg.add_input_text(default_value=self.profile.getName())
+                        dpg.add_text("Sample Request")
+                        dpg.add_input_text(multiline=True)
+                    with dpg.group(width=column_widths[1]):
+                        dpg.add_text("Method Configuration")
+                        dpg.add_text("Expected Reponses-")
+                        with dpg.group(horizontal=True):
+                            dpg.add_text("  of Search:")
+                            dpg.add_radio_button(
+                                GUIProfile.OPTIONS.RETTYPE,
+                                horizontal=True,
+                                tag=self.getKey(GUIProfile.ELEMENTS.SEARCHRETTYPE),
+                                default_value=self.profile.getSearch().getJobListRetType())
+                        with dpg.group(horizontal=True):
+                            dpg.add_text("  of Descriptions:")
+                            dpg.add_radio_button(
+                                GUIProfile.OPTIONS.RETTYPE,
+                                horizontal=True,
+                                tag=self.getKey(GUIProfile.ELEMENTS.DESCRETTYPE),
+                                default_value=self.profile.getSearch().getJobDescRetType())
+                        dpg.add_text("Render Required-")
+                        with dpg.group(horizontal=True):
+                            dpg.add_text("  of Search:")
+                            dpg.add_radio_button(
+                                GUIProfile.OPTIONS.RENREQ,
+                                horizontal=True,
+                                tag=self.getKey(GUIProfile.ELEMENTS.SEARCHRENREQ),
+                                default_value=GUIProfile.OPTIONS.RENREQ[self.profile.getSearch().getListRenReq()])
+                        with dpg.group(horizontal=True):
+                            dpg.add_text("  of Descriptions:")
+                            dpg.add_radio_button(
+                                GUIProfile.OPTIONS.RENREQ,
+                                horizontal=True,
+                                tag=self.getKey(GUIProfile.ELEMENTS.DESCRENREQ),
+                                default_value=GUIProfile.OPTIONS.RENREQ[self.profile.getSearch().getDescRenReq()])
+                        with dpg.group(horizontal=True):
+                            with dpg.group():
+                                dpg.add_text("Link Keyword Identifying Jobs")
+                                dpg.add_text("Link Keyword Identifying Pages")
+                                with dpg.group(horizontal=True):
+                                    dpg.add_text("Job Title HTML Element")
+                                    dpg.add_button(
+                                        label="(help)",
+                                        callback=lambda:webbrowser.open('https://www.w3schools.com/cssref/css_selectors.php'),
+                                        small=True)
+                                with dpg.group(horizontal=True):
+                                    dpg.add_text("Job Desc HTML Element")
+                                    dpg.add_button(
+                                        label="(help)",
+                                        callback=lambda:webbrowser.open('https://www.w3schools.com/cssref/css_selectors.php'),
+                                        small=True)
+                            with dpg.group():
+                                dpg.add_input_text(
+                                    default_value=self.profile.getSearch().getJobKeyId(),
+                                    tag=self.getKey(GUIProfile.ELEMENTS.JOBKEYID))
+                                dpg.add_input_text(
+                                    default_value=self.profile.getSearch().getPageKeyId(),
+                                    tag=self.getKey(GUIProfile.ELEMENTS.PAGEKEYID))
+                                dpg.add_input_text(
+                                    default_value=self.profile.getSearch().getTitleKey(),
+                                    tag=self.getKey(GUIProfile.ELEMENTS.HTMLTITLEKEY))
+                                dpg.add_input_text(
+                                    default_value=self.profile.getSearch().getDescKey(),
+                                    tag=self.getKey(GUIProfile.ELEMENTS.HTMLDESCKEY))
+                    with dpg.group(width=column_widths[2]):
+                        dpg.add_text("Config Assistance")
+                        dpg.add_text("Job Identifying Keyword Help")
+                        dpg.add_listbox(tag=self.getKey(GUIProfile.ELEMENTS.LINKS))
+                        dpg.add_button(label="Peek Links", tag=self.getKey(GUIProfile.ELEMENTS.PEEKLINKS))
+                        dpg.add_text("Job Desc HTML Element Help")
+                        dpg.add_input_text(tag=self.getKey(GUIProfile.ELEMENTS.DESCRIPTION), multiline=True, readonly=True)
+                        dpg.add_button(label="Peek Description", tag=self.getKey(GUIProfile.ELEMENTS.PEEKDESC))
+                with dpg.group():
+                    dpg.add_button(label="Commit Changes", tag=self.getKey(GUIProfile.ELEMENTS.ADDSEARCH))
                     with dpg.group(horizontal=True):
-                        dpg.add_text("Profile Name:")
-                        dpg.add_input_text()
-                    dpg.add_text("Sample Request")
-                    dpg.add_input_text(multiline=True)
-                with dpg.group(width=200):
-                    dpg.add_text("Method Configuration")
-                    dpg.add_text("Expected Reponses-")
-                    with dpg.group(horizontal=True):
-                        dpg.add_text("  of Search:")
-                        dpg.add_radio_button(
-                            GUIProfile.OPTIONS.RETTYPE,
-                            horizontal=True,
-                            tag=self.getKey(GUIProfile.ELEMENTS.SEARCHRETTYPE))
-                    with dpg.group(horizontal=True):
-                        dpg.add_text("  of Descriptions:")
-                        dpg.add_radio_button(
-                            GUIProfile.OPTIONS.RETTYPE,
-                            horizontal=True,
-                            tag=self.getKey(GUIProfile.ELEMENTS.DESCRETTYPE))
-                    dpg.add_text("Render Required-")
-                    with dpg.group(horizontal=True):
-                        dpg.add_text("  of Search:")
-                        dpg.add_radio_button(
-                            GUIProfile.OPTIONS.RENREQ,
-                            horizontal=True,
-                            tag=self.getKey(GUIProfile.ELEMENTS.SEARCHRENREQ))
-                    with dpg.group(horizontal=True):
-                        dpg.add_text("  of Descriptions:")
-                        dpg.add_radio_button(
-                            GUIProfile.OPTIONS.RENREQ,
-                            horizontal=True,
-                            tag=self.getKey(GUIProfile.ELEMENTS.DESCRENREQ))
-                    with dpg.group(horizontal=True):
-                        with dpg.group():
-                            dpg.add_text("Link Keyword Identifying Jobs")
-                            dpg.add_text("Link Keyword Identifying Pages")
-                            with dpg.group(horizontal=True):
-                                dpg.add_text("Job Title HTML Element")
-                                dpg.add_button(
-                                    label="(help)",
-                                    callback=lambda:webbrowser.open('https://www.w3schools.com/cssref/css_selectors.php'),
-                                    small=True)
-                            with dpg.group(horizontal=True):
-                                dpg.add_text("Job Desc HTML Element")
-                                dpg.add_button(
-                                    label="(help)",
-                                    callback=lambda:webbrowser.open('https://www.w3schools.com/cssref/css_selectors.php'),
-                                    small=True)
-                        with dpg.group():
-                            dpg.add_input_text(tag=self.getKey(GUIProfile.ELEMENTS.JOBKEYID))
-                            dpg.add_input_text(
-                                default_value="page",
-                                tag=self.getKey(GUIProfile.ELEMENTS.PAGEKEYID))
-                            dpg.add_input_text(
-                                default_value="type.class; e.g. div.main",
-                                tag=self.getKey(GUIProfile.ELEMENTS.HTMLTITLEKEY))
-                            dpg.add_input_text(
-                                default_value="type.class; e.g. div.main",
-                                tag=self.getKey(GUIProfile.ELEMENTS.HTMLDESCKEY))
+                        dpg.add_input_text(
+                            tag=self.getKey(GUIProfile.ELEMENTS.SEARCHPHRASES),
+                            width=150, height=60,
+                            multiline=True,
+                            default_value=self.profile.getSearch().getSearchPhrases(asString=True))
+                        dpg.add_button(label="Commit Phrases", tag=self.getKey(GUIProfile.ELEMENTS.COMMITPHRASES))
+                
+        # search_phrase_layout = sg.Col([
+        #     [sg.Multiline(size=(25,8), key=GUI.PROFILEELEMENTS.SEARCHPHRASES),sg.Button('Commit Phrases', key=GUI.PROFILEELEMENTS.COMMITPHRASES)],
+        #     ], expand_x=True, expand_y=True)
+
+        # #JOBS LAYOUT
+
+        # #TAB LAYOUT
+        # search_panel_layout = [
+        #     [config_layout, method_layout,peek_layout],
+        #     [sg.Button('Commit Changes', key=GUI.PROFILEELEMENTS.ADDSEARCH)],
+        #     [search_phrase_layout]
+        #     ]
+        # job_panel_layout = [
+        #     [sg.Button('Find Current Jobs', key=GUI.PROFILEELEMENTS.GETCURRENTJOBS)],
+        #     [sg.Multiline(size=(70,20),key=GUI.PROFILEELEMENTS.JOBSTATUSUPDATE)],
+        #     [sg.Button('View Jobs', key=GUI.PROFILEELEMENTS.JOBSDETAIL)]
+        # ]
+        # tabs = sg.TabGroup([[
+        #     sg.Tab('Config', search_panel_layout),
+        #     sg.Tab('Jobs', job_panel_layout)]], expand_x=True, expand_y=True)
                     
         
 
