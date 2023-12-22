@@ -4,8 +4,9 @@ import json
 import gui
 import gui_new
 import platform
+import argparse
 
-def main():
+def main(debug=False):
     gpgDict = {"gnupghome": Path().home()/'.gnupg'}
     if platform.system() == 'Windows':
         gpgDict['gnupghome'] = Path().home()/'AppData'/'Roaming'/'gnupg'
@@ -16,7 +17,11 @@ def main():
         LLM_API_Key = gpg.decrypt_file(f)
         LLM_API_Key = json.loads(LLM_API_Key.data)['google_bard']
         
-    gui_new.main(LLM_API_Key=LLM_API_Key)
+    gui_new.main(LLM_API_Key=LLM_API_Key, debug=debug)
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--debug", action='store_true')
+    args = parser.parse_args()
+
+    main(debug=args.debug)
