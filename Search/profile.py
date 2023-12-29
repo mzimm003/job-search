@@ -1,49 +1,49 @@
 from typing import (
     List,
     Dict,
-    Set
 )
 from Search.search import Search
 import enum
+import datetime
 
 class Portfolio:
     def __init__(self) -> None:
-        self.profiles:Dict[str, 'Profile'] = {}
-        self.currentPosts:Dict[str, Dict] = {}
-        self.historicalPosts:Dict[str, Dict[str, Posting]] = {}
+        self.profiles:Dict[str,'Profile'] = {}
     
     def addProfile(self, prof:'Profile'):
-        self.profiles[prof.name] = prof
+        self.profiles[prof.getName()] = prof
 
     def getProfiles(self):
         return self.profiles
+    
+    def getCurrentPosts(self):
+        return {n:p.getCurrentPosts() for n,p in self.getProfiles().items()}
+    
+    def getHistoricalPosts(self):
+        return {n:p.getHistoricalPosts() for n,p in self.getProfiles().items()}
+        
+    def getProfileNames(self):
+        return list(self.getProfiles().keys())
+    
+    def selectProfileByName(self, name):
+        return self.getProfiles()[name]
+    
+    def getNewJobs(self):
+        for p in self.getProfiles().values():
+            p.gatherPosts()
+
+    def CLEARALLPOSTS(self):
+        for p in self.getProfiles().values():
+            p.CLEARALLPOSTS()
 
     def renameProfile(self, prof:'Profile', name:str):
         del self.profiles[prof.name]
         prof.setName(name)
         self.profiles[name] = prof
-    
-    def getNewJobs(self):
-        for n, p in self.profiles.items():
-            self.getNewJobsByProfile(p)
 
-    def getNewJobsByProfile(self, prof:'Profile'):
-        prof.gatherPosts()
-        if not prof.name in self.currentPosts:
-            self.currentPosts[prof.name] = {}
-        if not prof.name in self.historicalPosts:
-            self.historicalPosts[prof.name] = {}
-        self.currentPosts[prof.name].update(prof.currentPosts)
-        self.historicalPosts[prof.name].update(prof.historicalPosts)
-
-    def CLEARALLPOSTS(self):
-        for k, p in self.profiles.items():
-            p.CLEARALLPOSTS()
-        self.currentPosts = {}
-        self.historicalPosts = {}
         
-
 class Profile:
+    NEWPROFILE = "--New--"
     def __init__(
             self,
             name:str,
@@ -58,6 +58,10 @@ class Profile:
     @classmethod
     def bySearch(cls, search:Search):
         return cls(name=search.orgName, search=search)
+    
+    @classmethod
+    def default(cls):
+        return cls(name=Profile.NEWPROFILE, search=Search())
 
     def defineSearch(self, search:Search):
         self.search = search
@@ -92,10 +96,12 @@ class Profile:
     
     def getSearch(self):
         return self.search
-
-    def processPosts(self):
-        for cp in self.currentPosts:
-            pass
+    
+    def getCurrentPosts(self):
+        return self.currentPosts
+    
+    def getHistoricalPosts(self):
+        return self.historicalPosts
     
     def CLEARALLPOSTS(self):
         self.currentPosts = {}
@@ -120,6 +126,7 @@ class Posting:
         self.title = title
         self.desc = desc
         self.status = Posting.STATUS.Pending
+        self.date_pulled = datetime.date.today()
     
     @classmethod
     def bySearchDesc(cls, searchDesc:Dict) -> 'Posting':
@@ -136,12 +143,14 @@ class Posting:
             self.status = Posting.STATUS.Pending
         else:
             self.status = Posting.STATUS.Applied
+        return self.status.name
     
     def toggleIgnore(self):
         if self.status == Posting.STATUS.Ignored:
             self.status = Posting.STATUS.Pending
         else:
             self.status = Posting.STATUS.Ignored
+        return self.status.name
 
     def getDesc(self):
         return self.desc
@@ -149,6 +158,9 @@ class Posting:
     def getTitle(self):
         return self.title
     
+    def getDatePulled(self):
+        return self.date_pulled
+
     def displayDescription(self):
         return self.getTitle() + '\n' + self.getDesc()
 

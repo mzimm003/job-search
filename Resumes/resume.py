@@ -4,6 +4,8 @@ from typing import (
 )
 import enum
 import datetime
+import pickle
+from pathlib import Path
 
 class ResumeRevision:
     def __init__(
@@ -93,14 +95,39 @@ class Resume:
         self.gitHubLink:str = '' if gitHubLink is None else gitHubLink
         self.sections:List[Section] = [] if sections is None else sections
 
+    @staticmethod
+    def findResumeLinks():
+        return list(Path('./Resumes').rglob('*.pkl'))
+
+    @classmethod
+    def loadResume(cls, path='./Resumes/main/resume.pkl') -> "Resume":
+        r = None
+        with open(path,'rb') as f:
+            r = pickle.load(f)
+        return r
+
+    def saveResume(self):
+        job_num = self.job[self.job.rfind('-')+1:]
+        with open('./Resumes/{}/{}.pkl'.format(self.org, job_num),'wb') as f:
+            pickle.dump(self, f)
+
+    def setOrg(self, org):
+        self.org = org
+
+    def getOrg(self):
+        return self.org
+
+    def setJob(self, job):
+        self.job = job
+
+    def getJob(self):
+        return self.job
+
     def addSection(self, section:'Section'):
         self.sections.append(section)
 
     def getSections(self)->List['Section']:
         return self.sections
-    
-    # def asDict(self, bulletsOnly=True, skillCSVsOnly=False, skipEdu=False):
-    #     s = self.__stringList(bulletsOnly, skillCSVsOnly, skipEdu)
 
     def asString(self, bulletsOnly=False, skillCSVsOnly=False, skipEdu=False, lineNums=False, asDict=False):
         s = self.__stringList(bulletsOnly, skillCSVsOnly, skipEdu)
@@ -206,6 +233,9 @@ class Subsection:
     
     def getElements(self):
         return self.elements
+    
+    def setElements(self, elements):
+        self.elements = elements
 
     def addSubSection(self, subsection:'Subsection'):
         self.elements.append(subsection)

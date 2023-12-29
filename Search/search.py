@@ -70,13 +70,13 @@ class Search:
         self.orgName = '' if orgName is None else orgName
         self.searchReq = Request() if searchReq is None else searchReq
         self.searchPhrases = [] if searchPhrases is None else searchPhrases
-        self.jobKeyId = '' if jobKeyId is None else jobKeyId
+        self.jobKeyId = 'jobs' if jobKeyId is None else jobKeyId
         self.pageKeyId = 'page' if pageKeyId is None else pageKeyId
-        self.titleKey = '' if titleKey is None else titleKey
-        self.descKey = '' if descKey is None else descKey
+        self.titleKey = 'type.class; e.g. div.main' if titleKey is None else titleKey
+        self.descKey = 'type.class; e.g. div.main' if descKey is None else descKey
         self.jobListPathKeyIds = [] if jobListPathKeyIds is None else jobListPathKeyIds
-        self.jobListRetType = '' if jobListRetType is None else jobListRetType
-        self.jobDescRetType = '' if jobDescRetType is None else jobDescRetType
+        self.jobListRetType = 'html' if jobListRetType is None else jobListRetType
+        self.jobDescRetType = 'html' if jobDescRetType is None else jobDescRetType
         self.listRenReq = False if listRenReq is None else listRenReq
         self.descRenReq = False if descRenReq is None else descRenReq
         self.ses = None
@@ -207,12 +207,12 @@ class Search:
     def setJobKeyId(self, key:str):
         self.jobKeyId = key
         if self.jobListRetType == 'json':
-            self.jobKeyId, jobListPathKeyIds = self.jobKeyId.split(';')
-            self.jobListPathKeyIds = jobListPathKeyIds.split(',')
+            self.jobKeyId, jobListPathKeyIds = self.jobKeyId.split(';') if ';' in self.jobKeyId else (self.jobKeyId, '')
+            self.jobListPathKeyIds = jobListPathKeyIds.split(',') if ',' in self.jobListPathKeyIds else []
     
     def getJobKeyId(self):
         ret = self.jobKeyId
-        if self.jobListRetType == 'json':
+        if self.jobListRetType == 'json' and self.jobListPathKeyIds:
             ret += ';'+','.join(self.jobListPathKeyIds)
         return ret
 
@@ -242,14 +242,26 @@ class Search:
     def getJobDescRetType(self):
         return self.jobDescRetType
     
+    def setJobDescRetType(self, typ):
+        self.jobDescRetType = typ
+    
     def getJobListRetType(self):
         return self.jobListRetType
+    
+    def setJobListRetType(self, typ):
+        self.jobListRetType = typ
     
     def getListRenReq(self):
         return self.listRenReq
     
+    def setListRenReq(self, req):
+        self.listRenReq = req
+    
     def getDescRenReq(self):
         return self.descRenReq
+    
+    def setDescRenReq(self, req):
+        self.descRenReq = req
 
     def setSearchPhrases(self, phrases:List[str]):
         self.searchPhrases = phrases

@@ -531,9 +531,7 @@ class GUI:
         #Need to provide job selection and resume basis selection.
         #job selection -> where resume json, tex, and pdf will be saved
         #resume basis -> where resume json will be pulled from, providing available experience in opened resume window
-        r = None
-        with open('./Resumes/main/resume.pkl','rb') as f:
-            r = pickle.load(f)
+
         w = self.resumeWindow('test', r)
 
 
