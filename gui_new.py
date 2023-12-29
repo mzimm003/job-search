@@ -21,7 +21,7 @@ class GUI:
         self.portfolio = portfolio
         self.llm = llm
         self.debug = debug
-        self.primaryWindow = GUIMain(self.portfolio)
+        self.primaryWindow = GUIMain(self.portfolio, self.llm)
         dpg.create_context()
         if self.debug:
             dpg.configure_app(manual_callback_management=True)

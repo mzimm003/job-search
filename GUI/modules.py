@@ -8,6 +8,7 @@ from Search.profile import (
 )
 from Search.search import Search
 from Resumes.resume import Resume, Subsection, ResumeRevision
+from Resumes.llm import LLM
 from typing import (
     List,
     Dict,
@@ -52,6 +53,11 @@ class Keys:
             return str((key, ret))
         else:
             return key
+    def getKeyAppendingCount(self, k, count):
+        key = str(self.cls)+str(k)
+        return str((key, count))
+    def getKeyCount(self, k):
+        return self.counts[k]
 
 class GUIMain(Module):
     class ELEMENTS(enum.Enum):
@@ -65,9 +71,11 @@ class GUIMain(Module):
     def __init__(
             self,
             portfolio=None,
+            llm=None
             ) -> None:
         super().__init__()
         self.portfolio:Portfolio = portfolio
+        self.llm = llm
         # self.modules:Dict[str,List[Module]] = {}
 
     # def openModule(self, mod:Type[Module], **kwargs):
@@ -106,11 +114,11 @@ class GUIMain(Module):
 
     def openProfile(self, sender, app_data, user_data):
         profile_name = dpg.get_value(self.getKey(GUIMain.ELEMENTS.PROFILES))
-        prof_mod = GUIProfile.fromProfileAndPortfolio(self.portfolio.selectProfileByName(profile_name), self.portfolio)
+        prof_mod = GUIProfile.fromProfileAndPortfolio(self.portfolio.selectProfileByName(profile_name), self.portfolio, llm=self.llm)
         prof_mod.newWindow()
 
     def openJobs(self, sender, app_data, user_data):
-        job_mod = GUIJobs.fromPortfolio(self.portfolio)
+        job_mod = GUIJobs.fromPortfolio(self.portfolio, llm=self.llm)
         job_mod.newWindow()
 
     def getAllNewJobs(self, sender, app_data, user_data):
@@ -166,14 +174,16 @@ class GUIProfile(Module):
     def __init__(
             self,
             profile,
-            portfolio) -> None:
+            portfolio,
+            llm=None) -> None:
         super().__init__()
         self.profile:Profile = profile
         self.portfolio:Portfolio = portfolio
+        self.llm = llm
     
     @classmethod
-    def fromProfileAndPortfolio(cls, profile:Profile, portfolio:Portfolio):
-        return cls(profile, portfolio)
+    def fromProfileAndPortfolio(cls, profile:Profile, portfolio:Portfolio, llm:LLM=None):
+        return cls(profile, portfolio, llm=llm)
     
     def getKey(self, k, withCount=False):
         k = self.profile.getName()+str(k)
@@ -312,7 +322,7 @@ class GUIProfile(Module):
             dpg.set_value(self.getKey(GUIProfile.ELEMENTS.DESCRIPTION), self.profile.samplePosts())
 
     def openJobDetail(self, sender, app_data, user_data):
-        job_mod = GUIJobs.fromPortfolio(self.portfolio)
+        job_mod = GUIJobs.fromPortfolio(self.portfolio, llm=self.llm)
         job_mod.newWindow(self.profile.getName())
 
     def getCurrentJobs(self, sender, app_data, user_data):
@@ -480,14 +490,16 @@ class GUIJobs(Module):
 
     def __init__(
             self,
-            portfolio) -> None:
+            portfolio,
+            llm=None) -> None:
         super().__init__()
         self.portfolio:Portfolio = portfolio
         self.table_selections = set([])
+        self.llm = llm
     
     @classmethod
-    def fromPortfolio(cls, portfolio:Portfolio):
-        return cls(portfolio)
+    def fromPortfolio(cls, portfolio:Portfolio, llm:LLM=None):
+        return cls(portfolio, llm=llm)
     
     def __filt_key(self, x:str,y:str):
         x = x.replace(',','').replace('-','')
@@ -581,7 +593,7 @@ class GUIJobs(Module):
         if not base_resume:
             base_resume = './Resumes/main/resume.pkl'
         res = Resume.loadResume(base_resume)
-        res_mod = GUIResume.fromResume(res)
+        res_mod = GUIResume.fromResume(res, llm=self.llm)
         res_mod.newWindow()
 
     def createResume(self, sender, app_data, user_data):
@@ -592,10 +604,11 @@ class GUIJobs(Module):
             base_resume = dpg.get_value(self.getKey(GUIJobs.ELEMENTS.RESUME))
             if not base_resume:
                 base_resume = './Resumes/main/resume.pkl'
+            job = self.portfolio.getHistoricalPosts()[row_data[GUIJobs.HEADINGS.Company.name]][row_data[GUIJobs.HEADINGS.Job.name]]
             res = Resume.loadResume(base_resume)
             res.setOrg(row_data[GUIJobs.HEADINGS.Company.name])
             res.setJob(row_data[GUIJobs.HEADINGS.Job.name])
-            res_mod = GUIResume.fromResume(res)
+            res_mod = GUIResume.fromResumeAndPosting(res, job, llm=self.llm)
             res_mod.newWindow()
 
     def viewWebsite(self, sender, app_data, user_data):
@@ -649,20 +662,42 @@ class GUIResume(Module):
         SAVEPDF = enum.auto()
         BACK = enum.auto()
         NEXT = enum.auto()
-
+    class HEADINGS(enum.Enum):
+        Resume = "Resume"
+        Keep = "Keep"
+        Revisions = "Revisions"
+        RateAndKey = "Rating and Keywords"
     def __init__(
             self,
-            resume) -> None:
+            resume,
+            posting=None,
+            llm=None) -> None:
         super().__init__()
         self.resume:Resume = resume
+        self.posting:Posting = posting
+        self.llm:LLM = llm
         self.resumeMap = {}
     
     def addMapping(self, key, obj):
         self.resumeMap[key] = obj
     
     @classmethod
-    def fromResume(cls, resume:Resume):
-        return cls(resume)
+    def fromResume(cls, resume:Resume, llm:LLM=None):
+        return cls(resume, llm=llm)
+    
+    @classmethod
+    def fromResumeAndPosting(cls, resume:Resume, posting:Posting, llm:LLM=None):
+        return cls(resume, posting, llm=llm)
+
+    def __get_row_info(self, row):
+        row_kys = dpg.get_item_children(row)[1]
+        row_content = dpg.get_values(row_kys)
+        row_data = {}
+        row_keys = {}
+        for i, col in enumerate(GUIResume.HEADINGS):
+            row_data[col.name] = row_content[i]
+            row_keys[col.name] = row_kys[i]
+        return row_data, row_keys
 
     def newWindow(self):
         table_offset = 50
@@ -797,7 +832,7 @@ class GUIResume(Module):
                     t = "Rating and Keywords"
                     w4 = len(t)*wrap_pix_per_char
                     dpg.add_spacer(width=(table_widths[2]+table_widths[3]-w3-w4)//2)
-                    t = dpg.add_text(t)
+                    dpg.add_text(t)
                 with dpg.child_window(height=800):
                     for sec in self.resume.getSections():
                         dpg.add_text(sec.getTitle())
@@ -813,4 +848,24 @@ class GUIResume(Module):
         pass
 
     def runAI(self, sender, app_data, user_data):
-        pass
+        if self.posting:
+            tips = self.llm.getTips(
+                self.resume.asString(bulletsOnly=True, skipEdu=True, lineNums=True),
+                '{}\n{}'.format(self.posting.getTitle(),self.posting.getDesc()))
+            tip_idx = 0
+            for i in range(self.keys.getKeyCount(GUIResume.ELEMENTS.SECTION)):
+                if tip_idx >= len(tips):
+                    break
+                table_tag = self.keys.getKeyAppendingCount(GUIResume.ELEMENTS.SECTION, i)
+                for row in dpg.get_item_children(table_tag)[1]:
+                    if tip_idx >= len(tips):
+                        break
+                    row_data, row_keys = self.__get_row_info(row)
+                    dpg.set_value(
+                        row_keys[GUIResume.HEADINGS.RateAndKey.name],
+                        "{:.2f} | {}".format(
+                            tips[tip_idx]['rating'],
+                            ",".join(tips[tip_idx]['keywords'])))
+                    tip_idx += 1
+        else:
+            errorWindow("Currently Updating existing resume. No Job description to compare to.\nClose window and select 'Create Resume' instead")

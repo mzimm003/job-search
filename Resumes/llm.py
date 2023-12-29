@@ -46,16 +46,17 @@ class LLM:
         for i in range(self.num_requests):
             resp = self.model.generate_content(prompt)
             tab = self.interpretTable(resp.text)
-            self.combineTableInterpretations(table_results, tab)
+            table_results = self.combineTableInterpretations(table_results, tab)
         table_results = self.finalizeTableResults(table_results)
         return table_results
     
     def interpretTable(self, table):
         t = {}
-        for line in table.split('\n'):
-            elms = line.split(' | ')
-            if len(elms) == 3:
-                t[int(elms[0].removeprefix('| '))] = {'rating':[float(elms[1])], 'keywords':elms[2].removesuffix(' |').split(', ')}
+        for i, line in enumerate(table.split('\n')):
+            if i != 0:
+                elms = line.split(' | ')
+                if len(elms) == 3:
+                    t[int(elms[0].removeprefix('| '))] = {'rating':[float(elms[1])], 'keywords':elms[2].removesuffix(' |').split(', ')}
         return t
 
     def combineTableInterpretations(self, table1, table2):
@@ -73,9 +74,9 @@ class LLM:
         return ct
 
     def finalizeTableResults(self, table):
-        r = {}
+        res = {}
         for l, r in table.items():
             keyWordCounts = Counter(r['keywords'])
             top3KeyWords = list(sorted(keyWordCounts.keys(), key=lambda x:keyWordCounts[x], reverse=True))[:3]
-            r[l] = {'rating':mean(table['rating']), 'keywords':top3KeyWords}
-        return r
+            res[l] = {'rating':mean(r['rating']), 'keywords':top3KeyWords}
+        return res
