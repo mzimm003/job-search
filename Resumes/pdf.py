@@ -23,6 +23,7 @@ from pylatex.package import (
 )
 import pickle
 from typing import List
+import datetime
 
 
 class Resume(Environment):
@@ -40,7 +41,10 @@ class pdf:
 
     def fromResume(self, res:Res):
         self.doc = Document(
-            Path()/'Resumes/{}/{}'.format(res.org, res.job),
+            Path()/'Resumes/{}/Mark Zimmerman Resume_{}_{}{}'.format(
+                datetime.datetime.today().strftime('%m.%y'),
+                res.getOrg(),
+                res.getJob()[res.getJob().rfind('-'):]),
             fontenc=None,
             inputenc=None,
             lmodern=False,

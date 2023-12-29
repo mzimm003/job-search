@@ -59,8 +59,8 @@ class GUI:
                 dpg.add_button(label="No", callback=No)
 
 def main(LLM_API_Key='', debug=False):
-    # port:Portfolio = Portfolio()
-    # port.addProfile(Profile(GUI.NEWPROFILE))
+    port:Portfolio = Portfolio()
+    port.addProfile(Profile.default())
     if Path('Search/profiles.pkl').exists():
         with open('Search/profiles.pkl', 'rb') as f:
             port = pickle.load(f)

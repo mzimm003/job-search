@@ -13,6 +13,7 @@ import urllib.parse
 import urllib3
 import ssl
 from contextlib import contextmanager
+import dearpygui.dearpygui as dpg
 
 '''Generously provided by:
 https://stackoverflow.com/questions/71603314/ssl-error-unsafe-legacy-renegotiation-disabled
@@ -149,3 +150,40 @@ class Plan:
                 descDict.update(self.__getFullDescByHTML(wp))
                 descs.append(descDict)
         return descs
+
+def errorWindow(text:str):
+    actWindPos = dpg.get_item_pos(dpg.get_active_window())
+    actWinDim = (dpg.get_item_width(dpg.get_active_window()),dpg.get_item_height(dpg.get_active_window()))
+    with dpg.window(
+        label="Error",
+        modal=True,
+        tag="modal_id",
+        popup=True,
+        user_data="modal_id",
+        pos=(actWindPos[0]+actWinDim[0]//2,actWindPos[1]+actWinDim[1]//2)):
+        with dpg.group():
+            dpg.add_text(text)
+            dpg.add_button(label="Close", callback=lambda x,y,z:dpg.delete_item(z), user_data="modal_id", width=-1)
+
+def textWrapper(text:str, wrap_len=30):
+    line_len = 0
+    wrapped_text = []
+    for t in text.split(' '):
+        if line_len == 0:
+            wrapped_text.append('')
+        if line_len + len(t) + 1 < wrap_len:
+            wrapped_text[-1] += t + ' '
+            line_len += len(t) + 1
+        elif len(t) >= wrap_len:
+            temp = t
+            while len(temp) > 0:
+                wrapped_text[-1] += temp[:(wrap_len-line_len)]
+                temp = temp[(wrap_len-line_len):]
+                wrapped_text.append('')
+                line_len = 0
+            line_len = len(wrapped_text[-1])
+        else:
+            wrapped_text.append('')
+            wrapped_text[-1] += t + ' '
+            line_len = len(wrapped_text[-1])
+    return '\n'.join(wrapped_text)
