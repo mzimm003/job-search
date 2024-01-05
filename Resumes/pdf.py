@@ -42,7 +42,8 @@ class pdf:
     def fromResume(self, res:Res):
         self.doc = Document(
             Path()/'Resumes/{}/Mark Zimmerman Resume_{}_{}{}'.format(
-                datetime.datetime.today().strftime('%m.%y'),
+                res.getOrg(),
+                datetime.datetime.today().strftime('%m.%Y'),
                 res.getOrg(),
                 res.getJob()[res.getJob().rfind('-'):]),
             fontenc=None,

@@ -24,6 +24,7 @@ import urllib.parse
 import urllib3
 import ssl
 from contextlib import contextmanager
+import asyncio
 
 '''Generously provided by:
 https://stackoverflow.com/questions/71603314/ssl-error-unsafe-legacy-renegotiation-disabled
@@ -93,6 +94,7 @@ class Search:
     def __request(self, reqDict:Dict, renReq:bool=False):
         req = self.ses.request(**reqDict)
         if renReq:
+            # asyncio.set_event_loop(asyncio.new_event_loop())
             req.html.render()
         return req
 
@@ -157,7 +159,7 @@ class Search:
             if self.jobListRetType == 'html':
                 l = [l for l in wp.html.links]
             elif self.jobListRetType == 'json':
-                pass
+                l = wp.json()
         return l
 
     def __getJobInfoByHTML(self,
@@ -292,7 +294,7 @@ class Search:
             listRenReq = listRenReq,
             descRenReq = descRenReq,)
         
-        if jobListRetType == 'json':
+        if ';' in jobKeyId:
             jobKeyId, jobListPathKeyIds = jobKeyId.split(';')
             jobListPathKeyIds = jobListPathKeyIds.split(',')
             creationDict['jobKeyId'] = jobKeyId

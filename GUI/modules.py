@@ -7,17 +7,22 @@ from Search.profile import (
     Posting
 )
 from Search.search import Search
-from Resumes.resume import Resume, Subsection, ResumeRevision
+from Resumes.resume import Resume, Section, Subsection, ResumeRevision
 from Resumes.llm import LLM
+from Resumes.pdf import pdf
 from typing import (
     List,
     Dict,
-    Type
+    Type,
+    Union
 )
 from Search.utility import errorWindow, textWrapper
 import abc
 import enum
 import pickle
+import traceback
+from copy import deepcopy
+import datetime
 
 class Module(abc.ABC):
     def __init__(self) -> None:
@@ -154,7 +159,8 @@ class GUIProfile(Module):
         DESCRENREQ = enum.auto()
         # DESCRENREQNO = enum.auto()
         # DESCRENREQYES = enum.auto()
-        LINKS = enum.auto()
+        LINKSLL = enum.auto()
+        LINKSTN = enum.auto()
         DESCRIPTION = enum.auto()
         PEEKDESC = enum.auto()
         JOBKEYID = enum.auto()
@@ -195,7 +201,8 @@ class GUIProfile(Module):
             label=self.profile.getName().upper(),
             pos=self.proposePosition(),
             on_close=self.cleanAliases,
-            tag=self.getKey(GUIProfile.ELEMENTS.WINDOW)):
+            tag=self.getKey(GUIProfile.ELEMENTS.WINDOW),
+            width=1400):
             with dpg.tab_bar():
                 with dpg.tab(label="Config"):
                     with dpg.group():
@@ -215,7 +222,9 @@ class GUIProfile(Module):
                                         GUIProfile.OPTIONS.RETTYPE,
                                         horizontal=True,
                                         tag=self.getKey(GUIProfile.ELEMENTS.SEARCHRETTYPE),
-                                        default_value=self.profile.getSearch().getJobListRetType())
+                                        default_value=self.profile.getSearch().getJobListRetType(),
+                                        user_data={i:j for i,j in zip(GUIProfile.OPTIONS.RETTYPE, [GUIProfile.ELEMENTS.LINKSLL, GUIProfile.ELEMENTS.LINKSTN])},
+                                        callback=self.peekLinkStructToggle)
                                 with dpg.group(horizontal=True):
                                     dpg.add_text("  of Descriptions:")
                                     dpg.add_radio_button(
@@ -270,7 +279,14 @@ class GUIProfile(Module):
                             with dpg.group(width=column_widths[2]):
                                 dpg.add_text("Config Assistance")
                                 dpg.add_text("Job Identifying Keyword Help")
-                                dpg.add_listbox(tag=self.getKey(GUIProfile.ELEMENTS.LINKS))
+                                dpg.add_listbox(
+                                    tag=self.getKey(GUIProfile.ELEMENTS.LINKSLL),
+                                    num_items=10,
+                                    show=dpg.get_value(self.getKey(GUIProfile.ELEMENTS.SEARCHRETTYPE))==GUIProfile.OPTIONS.RETTYPE[0])
+                                dpg.add_child_window(
+                                    height=180,
+                                    show=dpg.get_value(self.getKey(GUIProfile.ELEMENTS.SEARCHRETTYPE))==GUIProfile.OPTIONS.RETTYPE[1],
+                                    tag=self.getKey(GUIProfile.ELEMENTS.LINKSTN))
                                 dpg.add_button(
                                     label="Peek Links",
                                     tag=self.getKey(GUIProfile.ELEMENTS.PEEKLINKS),
@@ -279,7 +295,8 @@ class GUIProfile(Module):
                                 dpg.add_input_text(
                                     tag=self.getKey(GUIProfile.ELEMENTS.DESCRIPTION),
                                     multiline=True,
-                                    readonly=True)
+                                    readonly=True,
+                                    height=300)
                                 dpg.add_button(
                                     label="Peek Description",
                                     tag=self.getKey(GUIProfile.ELEMENTS.PEEKDESC),
@@ -312,6 +329,14 @@ class GUIProfile(Module):
                     with dpg.child_window(width=600, height=400):
                         dpg.add_text("", wrap=600, tag=self.getKey(GUIProfile.ELEMENTS.JOBSTATUSUPDATE))
 
+    def peekLinkStructToggle(self, sender, app_data, user_data):
+        show = dpg.get_value(sender)
+        for k, v in user_data.items():
+            if k == show:
+                dpg.configure_item(self.getKey(v), show=True)
+            else:
+                dpg.configure_item(self.getKey(v), show=False)
+
     def cssSelectorHelp(self, sender, app_data, user_data):
         webbrowser.open('https://www.w3schools.com/cssref/css_selectors.php')
 
@@ -340,7 +365,7 @@ class GUIProfile(Module):
             self.getKey(GUIProfile.ELEMENTS.SEARCHPHRASES),
             '\n'.join(self.profile.getSearch().getSearchPhrases()))
 
-    def searchPhraseWindow(self):
+    def searchPhraseWindow(self, close_win):
         def getSlctn(sender, app_data, user_data):
             srchPhrs = dpg.get_value("temp")
             searchHeader = self.__getSearchRequest(srchPhrs)
@@ -352,6 +377,7 @@ class GUIProfile(Module):
                 profile = Profile.bySearch(search)
                 self.__updatePortfolio(profile)
             dpg.delete_item(user_data)
+            dpg.delete_item(close_win)
         wrapped_text = textWrapper(
             dpg.get_value(self.getKey(GUIProfile.ELEMENTS.MLSEARCHHEADER)),
             wrap_len=65)
@@ -412,7 +438,21 @@ class GUIProfile(Module):
             search_header = self.__getSearchRequest(fake_key)
             search = self.__getSearch(search_header)
             links = search.peekLinks(reqDict=search_header.getRequestDict(fake_key))
-            dpg.configure_item(self.getKey(GUIProfile.ELEMENTS.LINKS), items=links)
+            if dpg.get_value(self.getKey(GUIProfile.ELEMENTS.SEARCHRETTYPE)==GUIProfile.OPTIONS.RETTYPE[0]):
+                dpg.configure_item(self.getKey(GUIProfile.ELEMENTS.LINKSLL), items=links)
+            else:
+                def build_tree(parent, json):
+                    if isinstance(json, dict):
+                        for k, itm in json.items():
+                            p = dpg.add_tree_node(parent=parent, label=k)
+                            build_tree(p, itm)
+                    elif isinstance(json, list):
+                        for i, itm in enumerate(json):
+                            p = dpg.add_tree_node(parent=parent, label=i)
+                            build_tree(p, itm)
+                    else:
+                        dpg.add_text(str(json), parent=parent)
+                build_tree(self.getKey(GUIProfile.ELEMENTS.LINKSTN), links)
 
     def addSearch(self, sender, app_data, user_data):
         if self.profile.getName() == Profile.NEWPROFILE and '' in {
@@ -433,7 +473,8 @@ class GUIProfile(Module):
                 else:
                     self.refreshSearchConfigVisual(self.profile)
             else:
-                self.searchPhraseWindow()
+                win = dpg.get_active_window()
+                self.searchPhraseWindow(win)
     
     def __updatePortfolio(self, profile:Profile, renameProfile:bool=False):
         window_to_close = self.getKey(GUIProfile.ELEMENTS.WINDOW)
@@ -481,12 +522,14 @@ class GUIJobs(Module):
         JOBDESC = enum.auto()
         RESUME = enum.auto()
         CREATERESUME = enum.auto()
+        COMPROW = enum.auto()
         # GETTIPS = enum.auto()
     class HEADINGS(enum.Enum):
         Job = enum.auto()
         Company = enum.auto()
         Status = enum.auto()
-        Date = enum.auto()
+        PullDate = enum.auto()
+        RecentApp = enum.auto()
 
     def __init__(
             self,
@@ -495,7 +538,11 @@ class GUIJobs(Module):
         super().__init__()
         self.portfolio:Portfolio = portfolio
         self.table_selections = set([])
+        self.table_company_rows = {}
+        self.table_last_selected = None
         self.llm = llm
+        self.recent_time_unit = datetime.timedelta(6*30)
+        
     
     @classmethod
     def fromPortfolio(cls, portfolio:Portfolio, llm:LLM=None):
@@ -517,9 +564,26 @@ class GUIJobs(Module):
         self.table_selections = set([])
 
     def __select_call(self, s, a, u):
-        self.__clear_table_selections(s, a, u)
-        if dpg.get_value(s):
+        if dpg.is_key_down(dpg.mvKey_LShift) or dpg.is_key_down(dpg.mvKey_RShift):
+            row = dpg.get_item_parent(s)
+            table = dpg.get_item_parent(row)
+            rows = dpg.get_item_children(table)[1]
+            start_idx = rows.index(dpg.get_item_parent(self.table_last_selected))+1
+            end_idx = rows.index(row)
+            if end_idx < start_idx:
+                temp = end_idx
+                end_idx = start_idx
+                start_idx = temp
+            for r in rows[start_idx:end_idx]:
+                sel = dpg.get_item_children(r)[1][0]
+                dpg.set_value(sel, True)
+                self.table_selections.add(sel)
             self.table_selections.add(s)
+        else:
+            self.__clear_table_selections(s, a, u)
+            if dpg.get_value(s):
+                self.table_selections.add(s)
+                self.table_last_selected = s
         u(s,a,u)
 
     def newWindow(self, comp=""):
@@ -528,9 +592,9 @@ class GUIJobs(Module):
             pos=self.proposePosition(),
             on_close=self.cleanAliases,
         ):
-            table_widths = [1,320,100,60,80]
+            table_widths = [1,320,100,60,80,80]
             with dpg.group(horizontal=True):
-                with dpg.child_window(width=600,height=600):
+                with dpg.child_window(width=700,height=600):
                     dpg.add_text("Job List")
                     dpg.add_combo(["",*[p for p in self.portfolio.getProfiles()]],
                                   default_value=comp,
@@ -553,8 +617,12 @@ class GUIJobs(Module):
                         for i, h in enumerate(GUIJobs.HEADINGS, 1):
                             dpg.add_table_column(label=h.name, width_fixed=True, init_width_or_weight=table_widths[i])
                         for c, ps in self.portfolio.getHistoricalPosts().items():
+                            if not c in self.table_company_rows:
+                                self.table_company_rows[c] = []
                             for p_n, p_c in ps.items():
-                                with dpg.table_row(filter_key=self.__filt_key(c, p_c.getStatus())):
+                                row_tag = self.getKey(GUIJobs.ELEMENTS.COMPROW, withCount=True)
+                                self.table_company_rows[c].append(row_tag)
+                                with dpg.table_row(tag=row_tag, filter_key=self.__filt_key(c, p_c.getStatus())):
                                     dpg.add_selectable(
                                         label="",
                                         span_columns=True,
@@ -564,9 +632,10 @@ class GUIJobs(Module):
                                     dpg.add_text(c)
                                     dpg.add_text(p_c.getStatus())
                                     dpg.add_text(p_c.getDatePulled())
-                        # dpg.add_mouse_down_handler()
-                        # dpg.add_mouse_release_handler()
-                        # dpg.add_mouse_drag_handler()
+                                    last_app = self.portfolio.selectProfileByName(c).getLastApplied()
+                                    recent_app = (not last_app is None and
+                                                  last_app + self.recent_time_unit > datetime.date.today())
+                                    dpg.add_text(str(recent_app))
                 with dpg.group():
                     dpg.add_text("Description")
                     with dpg.child_window(width=700, height=500):
@@ -608,6 +677,7 @@ class GUIJobs(Module):
             res = Resume.loadResume(base_resume)
             res.setOrg(row_data[GUIJobs.HEADINGS.Company.name])
             res.setJob(row_data[GUIJobs.HEADINGS.Job.name])
+            res.setAITips({})
             res_mod = GUIResume.fromResumeAndPosting(res, job, llm=self.llm)
             res_mod.newWindow()
 
@@ -616,8 +686,10 @@ class GUIJobs(Module):
             row_data, row_keys = self.__get_row_info(row)
             webbrowser.open(self.portfolio.getHistoricalPosts()[row_data[GUIJobs.HEADINGS.Company.name]][row_data[GUIJobs.HEADINGS.Job.name]].getLink())
     
-    def __get_row_info(self, row):
-        row_kys = dpg.get_item_children(dpg.get_item_parent(row))[1]
+    def __get_row_info(self, row, bySelector=True):
+        if bySelector:
+            row = dpg.get_item_parent(row)
+        row_kys = dpg.get_item_children(row)[1]
         row_content = dpg.get_values(row_kys)
         row_data = {}
         row_keys = {}
@@ -633,40 +705,63 @@ class GUIJobs(Module):
             self.portfolio.getHistoricalPosts()[row_data[GUIJobs.HEADINGS.Company.name]][row_data[GUIJobs.HEADINGS.Job.name]].displayDescription())
   
     def setJobAsApplied(self, sender, app_data, user_data):
+        comps = set([])
         for row in self.table_selections:
             row_data, row_keys = self.__get_row_info(row)
+            comps.add(row_data[GUIJobs.HEADINGS.Company.name])
+            status = self.portfolio.getHistoricalPosts()[row_data[GUIJobs.HEADINGS.Company.name]][row_data[GUIJobs.HEADINGS.Job.name]].toggleApplied()
             dpg.set_value(
                 row_keys[GUIJobs.HEADINGS.Status.name],
-                self.portfolio.getHistoricalPosts()[row_data[GUIJobs.HEADINGS.Company.name]][row_data[GUIJobs.HEADINGS.Job.name]].toggleApplied())
+                status)
+            dpg.configure_item(dpg.get_item_parent(row), filter_key=self.__filt_key(row_data[GUIJobs.HEADINGS.Company.name], status))
+        for c in comps:
+            last_app = self.portfolio.selectProfileByName(c).getLastApplied()
+            recent_app = (not last_app is None and
+                          last_app + self.recent_time_unit > datetime.date.today())
+            for r in self.table_company_rows[c]:
+                row_data, row_keys = self.__get_row_info(r, bySelector=False)
+                dpg.set_value(
+                    row_keys[GUIJobs.HEADINGS.RecentApp.name],
+                    str(recent_app))
+
 
     def setJobAsIgnore(self, sender, app_data, user_data):
+        comps = set([])
         for row in self.table_selections:
             row_data, row_keys = self.__get_row_info(row)
+            comps.add(row_data[GUIJobs.HEADINGS.Company.name])
+            status = self.portfolio.getHistoricalPosts()[row_data[GUIJobs.HEADINGS.Company.name]][row_data[GUIJobs.HEADINGS.Job.name]].toggleIgnore()
             dpg.set_value(
                 row_keys[GUIJobs.HEADINGS.Status.name],
-                self.portfolio.getHistoricalPosts()[row_data[GUIJobs.HEADINGS.Company.name]][row_data[GUIJobs.HEADINGS.Job.name]].toggleIgnore())
+                status
+                )
+            dpg.configure_item(dpg.get_item_parent(row), filter_key=self.__filt_key(row_data[GUIJobs.HEADINGS.Company.name], status))
+        for c in comps:
+            last_app = self.portfolio.selectProfileByName(c).getLastApplied()
+            recent_app = (not last_app is None and
+                          last_app + self.recent_time_unit > datetime.date.today())
+            for r in self.table_company_rows[c]:
+                row_data, row_keys = self.__get_row_info(r, bySelector=False)
+                dpg.set_value(
+                    row_keys[GUIJobs.HEADINGS.RecentApp.name],
+                    str(recent_app))
 
 class GUIResume(Module):
     class ELEMENTS(enum.Enum):
+        RESUME = enum.auto()
         SECTION = enum.auto()
+        SUBSECTION = enum.auto()
+        SUBSUBSECTION = enum.auto()
         EXPERIENCE = enum.auto()
-        EXPKEEP = enum.auto()
-        EXPREVISION = enum.auto()
         SKILL = enum.auto()
-        SKLKEEP = enum.auto()
-        SKLREVISION = enum.auto()
-        AIEXP = enum.auto()
         AISKILL = enum.auto()
-        RUNAI = enum.auto()
-        SAVEJSON = enum.auto()
-        SAVEPDF = enum.auto()
-        BACK = enum.auto()
-        NEXT = enum.auto()
+        KEYTERMS = enum.auto()
     class HEADINGS(enum.Enum):
         Resume = "Resume"
         Keep = "Keep"
         Revisions = "Revisions"
         RateAndKey = "Rating and Keywords"
+
     def __init__(
             self,
             resume,
@@ -674,13 +769,56 @@ class GUIResume(Module):
             llm=None) -> None:
         super().__init__()
         self.resume:Resume = resume
+        self.updatedResume:Resume = None
         self.posting:Posting = posting
         self.llm:LLM = llm
         self.resumeMap = {}
+        self.revResumeMap = {}
+        self.upResumeMap = {}
+        self.revUpResumeMap = {}
+        self.skillList = []
     
     def addMapping(self, key, obj):
         self.resumeMap[key] = obj
+        self.revResumeMap[id(obj)] = key
     
+    def mapUpdatedResume(self, orgRes:Resume, newRes:Resume):
+        self.upResumeMap = {}
+        self.revUpResumeMap = {}
+
+        for orgSec, newSec in zip(orgRes.getSections(), newRes.getSections()):
+            self.__updated_res_map(orgSec, newSec)
+            for orgSubSec, newSubSec in zip(orgSec.getContent(), newSec.getContent()):
+                self.__updated_res_map(orgSubSec, newSubSec)
+                oldElms = orgSubSec.getElements()
+                newElms = newSubSec.getElements()
+                if isinstance(oldElms[0], str):
+                    self.__updated_res_map(oldElms, newElms)
+                else:
+                    for orgSubSubSec, newSubSubSec in zip(oldElms, newElms):
+                        self.__updated_res_map(orgSubSubSec, newSubSubSec)
+                        self.__updated_res_map(orgSubSubSec.getElements(), newSubSubSec.getElements())
+
+    def __updated_res_map(self, old, new):
+        if self.isInRevMap(old):
+            self.upResumeMap[id(old)] = new
+            self.revUpResumeMap[id(new)] = id(old)
+
+    def getMappedObj(self, key, convertToUpdated=True) -> Union[Section,Subsection,List[Subsection],List[str]]:
+        if convertToUpdated:
+            return self.upResumeMap[id(self.resumeMap[key])]
+        else:
+            return self.resumeMap[key]
+    
+    def getMappedKey(self, obj, convertToUpdated=True):
+        if convertToUpdated:
+            return self.revResumeMap[self.revUpResumeMap[id(obj)]]
+        else:
+            return self.revResumeMap[id(obj)]
+    
+    def isInRevMap(self, obj):
+        return id(obj) in self.revResumeMap
+
     @classmethod
     def fromResume(cls, resume:Resume, llm:LLM=None):
         return cls(resume, llm=llm)
@@ -688,33 +826,114 @@ class GUIResume(Module):
     @classmethod
     def fromResumeAndPosting(cls, resume:Resume, posting:Posting, llm:LLM=None):
         return cls(resume, posting, llm=llm)
+    
+    def __updateSection(self, sec):
+        remove_subsecs = []
+        for subsec in sec.getContent():
+            elements = subsec.getElements()
+            if isinstance(elements[0], str):
+                self.__updateSubsec(sec, subsec, elements)
+            else:
+                for subsubsec in elements:
+                    self.__updateSubsec(subsec, subsubsec, subsubsec.getElements())
+                if not subsec.getElements():
+                    remove_subsecs.append(subsec)
+        for subsec in remove_subsecs:
+            sec.removeSubSection(subsec)
+    
+    def __updateSubsec(self, sec, subsec, elements):
+        tab_data = tab_keys = None
+        if subsec.getType() == Subsection.Types.SKILL:
+            tab_data, tab_keys = self.__get_table_info(self.getMappedKey(elements), skill=True)
+        else:
+            tab_data, tab_keys = self.__get_table_info(self.getMappedKey(elements))
+        if self.__any_keep(tab_data):
+            temp = []
+            for row in tab_data:
+                if row[GUIResume.HEADINGS.Keep.name]:
+                    temp.append(row[GUIResume.HEADINGS.Revisions.name].replace('\n',' ').replace(' \n',' ').replace('\n ',' '))
+            subsec.setElements(temp)
+        else:
+            sec.removeSubSection(subsec)
 
-    def __get_row_info(self, row):
+    def __buildResume(self):
+        self.updatedResume = deepcopy(self.resume)
+        self.mapUpdatedResume(self.resume, self.updatedResume)
+        for i in range(self.keys.getKeyCount(GUIResume.ELEMENTS.SECTION)):
+            sec_key = self.keys.getKeyAppendingCount(GUIResume.ELEMENTS.SECTION, i)
+            sec = self.getMappedObj(sec_key)
+            self.__updateSection(sec)
+
+    def __any_keep(self, table):
+        keep = False
+        for r in table:
+            if r[GUIResume.HEADINGS.Keep.name]:
+                keep = True
+                break
+        return keep
+
+    def __get_table_info(self, table, skill=False):
+        table_data = []
+        table_keys = []
+        for row in dpg.get_item_children(table)[1]:
+            if skill:
+                row_data, row_keys = self.__get_skill_row_info(row)
+                table_data.extend(row_data)
+                table_keys.extend(row_keys)
+            else:
+                row_data, row_keys = self.__get_exp_row_info(row)
+                table_data.append(row_data)
+                table_keys.append(row_keys)
+        return table_data, table_keys
+
+    def __get_skill_row_info(self, row):
+        row_kys = dpg.get_item_children(row)[1]
+        row_data = []
+        row_keys = []
+        for grp in row_kys:
+            item = dpg.get_item_children(grp)[1][1]
+            row_data.append({GUIResume.HEADINGS.Keep.name:dpg.get_value(item),
+                             GUIResume.HEADINGS.Revisions.name:dpg.get_item_label(item)})
+            row_keys.append(item)
+        return row_data, row_keys
+
+    def __get_exp_row_info(self, row):
         row_kys = dpg.get_item_children(row)[1]
         row_content = dpg.get_values(row_kys)
         row_data = {}
         row_keys = {}
         for i, col in enumerate(GUIResume.HEADINGS):
-            row_data[col.name] = row_content[i]
-            row_keys[col.name] = row_kys[i]
+            if col.name == GUIResume.HEADINGS.Keep.name:
+                keep_key = dpg.get_item_children(row_kys[i])[1][1]
+                row_data[col.name] = dpg.get_value(keep_key)
+                row_keys[col.name] = keep_key
+            else:
+                row_data[col.name] = row_content[i]
+                row_keys[col.name] = row_kys[i]
         return row_data, row_keys
 
     def newWindow(self):
         table_offset = 50
-        table_widths = [450,50,450,450]
-        row_height = 50
+        table_widths = [550,50,550,550]
+        exp_row_height = 50
+        skill_row_height = 12
+        skill_num_cols = 5
         wrap_pix_per_char = 7
         def addContent(subsecs:List[Subsection]):
             for ss in subsecs:
                 if ss.getType() == Subsection.Types.ORGANIZATION:
-                    dpg.add_text(ss.getSubject())
+                    sec_key = self.getKey(GUIResume.ELEMENTS.SUBSECTION, withCount=True)
+                    dpg.add_text(ss.getSubject(), tag=sec_key)
+                    self.addMapping(sec_key, ss)
                     addContent(ss.getElements())
                 elif (ss.getType() == Subsection.Types.POSITION or
                       ss.getType() == Subsection.Types.PROJECT or
                       ss.getType() == Subsection.Types.SCHOOL):
-                    dpg.add_text('\t'+ss.getSubject())
-                    sec_key = self.getKey(GUIResume.ELEMENTS.SECTION, withCount=True)
+                    sec_key = self.getKey(GUIResume.ELEMENTS.SUBSUBSECTION, withCount=True)
+                    dpg.add_text('\t'+ss.getSubject(), tag=sec_key)
                     self.addMapping(sec_key, ss)
+                    sec_key = self.getKey(GUIResume.ELEMENTS.EXPERIENCE, withCount=True)
+                    self.addMapping(sec_key, ss.getElements())
                     with dpg.group(horizontal=True):
                         dpg.add_spacer(width=table_offset)
                         with dpg.table(tag=sec_key, header_row=False):
@@ -729,143 +948,169 @@ class GUIResume(Module):
                                         multiline=True,
                                         readonly=True,
                                         width=table_widths[0],
-                                        height=row_height)
-                                    dpg.add_checkbox(default_value=True)
+                                        height=exp_row_height)
+                                    with dpg.group(horizontal=True):
+                                        dpg.add_spacer(width=(table_widths[1]-table_widths[1]*2/3)/2)
+                                        dpg.add_checkbox(default_value=True)
                                     dpg.add_input_text(
                                         default_value=textWrapper(e,table_widths[2]//wrap_pix_per_char),
                                         multiline=True,
                                         width=table_widths[2],
-                                        height=row_height)
+                                        height=exp_row_height)
                                     dpg.add_input_text(
                                         default_value="",
                                         multiline=True,
                                         width=table_widths[3],
-                                        height=row_height)
+                                        height=exp_row_height)
                 elif ss.getType() == Subsection.Types.SKILL:
-                    dpg.add_text(ss.getSubject())
+                    sec_key = self.getKey(GUIResume.ELEMENTS.SUBSECTION, withCount=True)
+                    dpg.add_text(ss.getSubject(), tag=sec_key)
+                    self.addMapping(sec_key, ss)
+
                     if isinstance(ss.getElements()[0], str):
-                        sec_key = self.getKey(GUIResume.ELEMENTS.SECTION, withCount=True)
-                        self.addMapping(sec_key, ss)
+                        sec_key = self.getKey(GUIResume.ELEMENTS.SKILL, withCount=True)
+                        self.addMapping(sec_key, ss.getElements())
                         with dpg.group(horizontal=True):
                             dpg.add_spacer(width=table_offset)
                             with dpg.table(tag=sec_key, header_row=False):
-                                dpg.add_table_column(width_fixed=True, init_width_or_weight=table_widths[0])
-                                dpg.add_table_column(width_fixed=True, init_width_or_weight=table_widths[1])
-                                dpg.add_table_column(width_fixed=True, init_width_or_weight=table_widths[2])
-                                dpg.add_table_column(width_fixed=True, init_width_or_weight=table_widths[3])
-                                with dpg.table_row():
-                                    dpg.add_input_text(
-                                        default_value=textWrapper(','.join(ss.getElements()),table_widths[0]//wrap_pix_per_char),
-                                        multiline=True,
-                                        readonly=True,
-                                        width=table_widths[0],
-                                        height=row_height)
-                                    dpg.add_checkbox(default_value=True)
-                                    dpg.add_input_text(
-                                        default_value=textWrapper(','.join(ss.getElements()),table_widths[2]//wrap_pix_per_char),
-                                        multiline=True,
-                                        width=table_widths[2],
-                                        height=row_height)
-                                    dpg.add_input_text(
-                                        default_value="",
-                                        multiline=True,
-                                        width=table_widths[3],
-                                        height=row_height)
+                                for i in range(skill_num_cols):
+                                    dpg.add_table_column()
+                                row = None
+                                for i, e in enumerate(ss.getElements()):
+                                    if i % skill_num_cols == 0:
+                                        row = dpg.add_table_row()
+                                    with dpg.group(horizontal=True, parent=row):
+                                        dpg.add_spacer(width=1)
+                                        self.skillList.append(dpg.add_selectable(label=e,
+                                                        height=skill_row_height,
+                                                        default_value=True))
                     else:
                         for sss in ss.getElements():
-                            dpg.add_text("\t"+sss.getSubject())
-                            sec_key = self.getKey(GUIResume.ELEMENTS.SECTION, withCount=True)
+                            sec_key = self.getKey(GUIResume.ELEMENTS.SUBSUBSECTION, withCount=True)
+                            dpg.add_text("\t"+sss.getSubject(), tag=sec_key)
                             self.addMapping(sec_key, sss)
+
+                            sec_key = self.getKey(GUIResume.ELEMENTS.SKILL, withCount=True)
+                            self.addMapping(sec_key, sss.getElements())
                             with dpg.group(horizontal=True):
                                 dpg.add_spacer(width=table_offset)
                                 with dpg.table(tag=sec_key, header_row=False):
-                                    dpg.add_table_column(width_fixed=True, init_width_or_weight=table_widths[0])
-                                    dpg.add_table_column(width_fixed=True, init_width_or_weight=table_widths[1])
-                                    dpg.add_table_column(width_fixed=True, init_width_or_weight=table_widths[2])
-                                    dpg.add_table_column(width_fixed=True, init_width_or_weight=table_widths[3])
-                                    with dpg.table_row():
-                                        dpg.add_input_text(
-                                            default_value=textWrapper(','.join(sss.getElements()),table_widths[0]//wrap_pix_per_char),
-                                            multiline=True,
-                                            readonly=True,
-                                            width=table_widths[0],
-                                            height=row_height)
-                                        dpg.add_checkbox(default_value=True)
-                                        dpg.add_input_text(
-                                            default_value=textWrapper(','.join(sss.getElements()),table_widths[2]//wrap_pix_per_char),
-                                            multiline=True,
-                                            width=table_widths[2],
-                                            height=row_height)
-                                        dpg.add_input_text(
-                                            default_value="",
-                                            multiline=True,
-                                            width=table_widths[3],
-                                            height=row_height)
+                                    for i in range(skill_num_cols):
+                                        dpg.add_table_column()
+                                    row = None
+                                    for i, e in enumerate(sss.getElements()):
+                                        if i % skill_num_cols == 0:
+                                            row = dpg.add_table_row()
+                                        with dpg.group(horizontal=True, parent=row):
+                                            dpg.add_spacer(width=1)
+                                            self.skillList.append(dpg.add_selectable(label=e,
+                                                            height=skill_row_height,
+                                                            default_value=True))
+        viewport_width = dpg.get_viewport_client_width()
+        viewport_height = dpg.get_viewport_client_height()
         with dpg.window(
             label="Resume - {} - {}".format(self.resume.getOrg(),self.resume.getJob()),
             pos=self.proposePosition(),
             on_close=self.cleanAliases,
             modal=True,
-            height=920,
-            width=1600
+            height=viewport_height,
+            width=viewport_width,
         ):
-            with dpg.group():
-                with dpg.group(horizontal=True):
-                    dpg.add_spacer(width=table_offset)
-                    dpg.add_spacer(width=table_widths[0]+table_widths[1]+table_widths[2])
-                    with dpg.group(width=table_widths[3]):
-                        dpg.add_button(label="Get AI Tips", callback=self.runAI)
-                with dpg.group(horizontal=True):
-                    dpg.add_spacer(width=table_offset)
-                    t = "Resume"
-                    w1 = len(t)*wrap_pix_per_char
-                    dpg.add_spacer(width=(table_widths[0]-w1)//2)
+            with dpg.group(horizontal=True):
+                dpg.add_spacer(width=table_offset)
+                with dpg.table(header_row=False):
+                    dpg.add_table_column(width_fixed=True, init_width_or_weight=800)
+                    dpg.add_table_column(width_stretch=True, init_width_or_weight=0.0)
+                    dpg.add_table_column(width_fixed=True, init_width_or_weight=table_widths[3])
+                    with dpg.table_row():
+                        dpg.add_text(wrap=800, tag=self.getKey(GUIResume.ELEMENTS.KEYTERMS))
+                        dpg.add_spacer(height=80)
+                        dpg.add_button(label="Get AI Tips", callback=self.runAI, width=-1)                        
+            with dpg.group(horizontal=True):
+                dpg.add_spacer(width=table_offset)
+                prev_table_width = 0
+                prev_text_width = 0
+                for i, h in enumerate(GUIResume.HEADINGS):
+                    t = h.value
+                    w = len(t)*wrap_pix_per_char
+                    dpg.add_spacer(width=(prev_table_width+table_widths[i]-prev_text_width-w)//2)
                     dpg.add_text(t)
-                    t = "Keep"
-                    w2 = len(t)*wrap_pix_per_char
-                    dpg.add_spacer(width=(table_widths[0]+table_widths[1]-w1-w2)//2)
-                    dpg.add_text(t)
-                    t = "Revisions"
-                    w3 = len(t)*wrap_pix_per_char
-                    dpg.add_spacer(width=(table_widths[1]+table_widths[2]-w2-w3)//2)
-                    dpg.add_text(t)
-                    t = "Rating and Keywords"
-                    w4 = len(t)*wrap_pix_per_char
-                    dpg.add_spacer(width=(table_widths[2]+table_widths[3]-w3-w4)//2)
-                    dpg.add_text(t)
-                with dpg.child_window(height=800):
-                    for sec in self.resume.getSections():
-                        dpg.add_text(sec.getTitle())
+                    prev_table_width = table_widths[i]
+                    prev_text_width = w
+            with dpg.child_window(height=770, tag=self.getKey(GUIResume.ELEMENTS.RESUME)):
+                for sec in self.resume.getSections():
+                    sec_key = self.getKey(GUIResume.ELEMENTS.SECTION, True)
+                    dpg.add_text(sec.getTitle(), tag=sec_key)
+                    self.addMapping(sec_key, sec)
+                    if sec.getTitle() == "Skills":
+                        with dpg.table(header_row=False):
+                            dpg.add_table_column(width_stretch=True, init_width_or_weight=0.0)
+                            dpg.add_table_column(width_fixed=True, init_width_or_weight=40)
+                            dpg.add_table_column(width_fixed=True, init_width_or_weight=550)
+                            with dpg.table_row():
+                                with dpg.group():
+                                    addContent(sec.getContent())
+                                dpg.add_spacer()
+                                sec_key = self.getKey(GUIResume.ELEMENTS.AISKILL)
+                                with dpg.table(tag=sec_key):
+                                    dpg.add_table_column(label="Top 20 Skills")
+                    else:
                         addContent(sec.getContent())
-                with dpg.group(horizontal=True):
-                    dpg.add_button(label="Update Resume", callback=self.saveJSON)
-                    dpg.add_button(label="Generate PDF", callback=self.savePDF)
+            with dpg.group(horizontal=True):
+                dpg.add_button(label="Update Resume", callback=self.saveJSON)
+                dpg.add_button(label="Generate PDF", callback=self.savePDF)
     
     def saveJSON(self, sender, app_data, user_data):
-        pass
+        self.__buildResume()
+        self.updatedResume.saveResume()
 
     def savePDF(self, sender, app_data, user_data):
-        pass
+        if self.updatedResume:
+            pdf().fromResume(self.updatedResume)
+        else:
+            pdf().fromResume(self.resume)
 
     def runAI(self, sender, app_data, user_data):
         if self.posting:
-            tips = self.llm.getTips(
-                self.resume.asString(bulletsOnly=True, skipEdu=True, lineNums=True),
-                '{}\n{}'.format(self.posting.getTitle(),self.posting.getDesc()))
-            tip_idx = 0
-            for i in range(self.keys.getKeyCount(GUIResume.ELEMENTS.SECTION)):
-                if tip_idx >= len(tips):
-                    break
-                table_tag = self.keys.getKeyAppendingCount(GUIResume.ELEMENTS.SECTION, i)
-                for row in dpg.get_item_children(table_tag)[1]:
-                    if tip_idx >= len(tips):
+            try:
+                tips = self.llm.getTips(
+                    self.resume,
+                    '{}\n{}'.format(self.posting.getTitle(),self.posting.getDesc()))
+                self.resume.setAITips(tips)
+                dpg.set_value(
+                    self.getKey(GUIResume.ELEMENTS.KEYTERMS),
+                    "Job Description Key Terms:\n{}".format(tips["Key Terms"].replace('- ','').replace('\n',', ')))
+                tip_idx = 0
+                for i in range(self.keys.getKeyCount(GUIResume.ELEMENTS.EXPERIENCE)):
+                    if tip_idx >= len(tips["Experience"]):
                         break
-                    row_data, row_keys = self.__get_row_info(row)
-                    dpg.set_value(
-                        row_keys[GUIResume.HEADINGS.RateAndKey.name],
-                        "{:.2f} | {}".format(
-                            tips[tip_idx]['rating'],
-                            ",".join(tips[tip_idx]['keywords'])))
-                    tip_idx += 1
+                    table_tag = self.keys.getKeyAppendingCount(GUIResume.ELEMENTS.EXPERIENCE, i)
+                    for row in dpg.get_item_children(table_tag)[1]:
+                        if tip_idx >= len(tips["Experience"]):
+                            break
+                        row_data, row_keys = self.__get_exp_row_info(row)
+                        if tips["Experience"][tip_idx]['rating'] > 5:
+                            dpg.set_value(
+                                row_keys[GUIResume.HEADINGS.Keep.name],
+                                True)
+                        else:
+                            dpg.set_value(
+                                row_keys[GUIResume.HEADINGS.Keep.name],
+                                False)
+                        dpg.set_value(
+                            row_keys[GUIResume.HEADINGS.RateAndKey.name],
+                            "{:.2f} | {}".format(
+                                tips["Experience"][tip_idx]['rating'],
+                                ",".join(tips["Experience"][tip_idx]['keywords'])))
+                        tip_idx += 1
+                top20 = self.resume.getTopSkills()
+                for skl in self.skillList:
+                    dpg.set_value(skl, False)
+                for i, skl in top20:
+                    with dpg.table_row(parent=self.getKey(GUIResume.ELEMENTS.AISKILL)):
+                        dpg.add_text("{} | {:.2f} | {}".format(dpg.get_item_label(self.skillList[i]), skl["rating"], skl["keywords"]))
+                    dpg.set_value(self.skillList[i], True)
+            except Exception as inst:
+                errorWindow("Something went wrong invoking the AI model.\n{}:{}\n{}".format(type(inst), inst, traceback.format_exc()))
         else:
             errorWindow("Currently Updating existing resume. No Job description to compare to.\nClose window and select 'Create Resume' instead")
