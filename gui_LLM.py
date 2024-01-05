@@ -2,7 +2,6 @@ import gnupg
 from pathlib import Path
 import json
 import gui
-import gui_new
 import platform
 import argparse
 
@@ -17,7 +16,7 @@ def main(debug=False):
         LLM_API_Key = gpg.decrypt_file(f)
         LLM_API_Key = json.loads(LLM_API_Key.data)['google_bard']
         
-    gui_new.main(LLM_API_Key=LLM_API_Key, debug=debug)
+    gui.main(LLM_API_Key=LLM_API_Key, debug=debug)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

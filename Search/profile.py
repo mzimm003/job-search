@@ -103,6 +103,15 @@ class Profile:
     def getHistoricalPosts(self):
         return self.historicalPosts
     
+    def getLastApplied(self):
+        date = None
+        for post in self.getHistoricalPosts().values():
+            if (date is None or
+                (not post.getDateApplied() is None and
+                date < post.getDateApplied())):
+                date = post.getDateApplied()
+        return date
+    
     def CLEARALLPOSTS(self):
         self.currentPosts = {}
         self.historicalPosts = {}
@@ -127,6 +136,7 @@ class Posting:
         self.desc = desc
         self.status = Posting.STATUS.Pending
         self.date_pulled = datetime.date.today()
+        self.date_applied = None
     
     @classmethod
     def bySearchDesc(cls, searchDesc:Dict) -> 'Posting':
@@ -141,8 +151,10 @@ class Posting:
     def toggleApplied(self):
         if self.status == Posting.STATUS.Applied:
             self.status = Posting.STATUS.Pending
+            self.date_applied = None
         else:
             self.status = Posting.STATUS.Applied
+            self.date_applied = datetime.date.today()
         return self.status.name
     
     def toggleIgnore(self):
@@ -150,6 +162,7 @@ class Posting:
             self.status = Posting.STATUS.Pending
         else:
             self.status = Posting.STATUS.Ignored
+        self.date_applied = None
         return self.status.name
 
     def getDesc(self):
@@ -160,6 +173,9 @@ class Posting:
     
     def getDatePulled(self):
         return self.date_pulled
+    
+    def getDateApplied(self):
+        return self.date_applied
 
     def displayDescription(self):
         return self.getTitle() + '\n' + self.getDesc()
