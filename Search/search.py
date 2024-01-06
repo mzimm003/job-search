@@ -96,6 +96,8 @@ class Search:
         if renReq:
             # asyncio.set_event_loop(asyncio.new_event_loop())
             req.html.render()
+        if req.status_code == 404:
+            raise ConnectionError("Webpage is unreachable.")
         return req
 
     def CLEARALLPOSTS(self):
@@ -130,7 +132,10 @@ class Search:
             wp = self.__request(reqDict, self.listRenReq)
             if self.jobListRetType == 'html':
                 for link in wp.html.absolute_links:
-                    if self.jobKeyId in link:
+                    if (self.jobKeyId in link and
+                        not ('facebook' in link.lower() or
+                             'twitter' in link.lower() or
+                             'linkedin' in link.lower())):
                         l.append(link)
                     if followPages and self.pageKeyId in link:
                         pageq = urllib.parse.urlparse(link).query
@@ -146,7 +151,11 @@ class Search:
                         k = int(k)
                     jobList = jobList[k]
                 for job in jobList:
-                    l.append(job[self.jobKeyId])
+                    for k in self.jobKeyId:
+                        if isinstance(job, list):
+                            k = int(k)
+                        job = job[k]
+                    l.append(job)
         return l
     
     def peekLinks(
@@ -165,7 +174,10 @@ class Search:
     def __getJobInfoByHTML(self,
         wpResp:requests_html.HTMLResponse,
         key:str):
-        return wpResp.html.find(key)[0].text
+        inf = []
+        for sec in wpResp.html.find(key):
+            inf.append(sec.text)
+        return '\n'.join(inf)
     
     def __getJobInfoByJSON(self,
         wpResp:requests_html.HTMLResponse,
@@ -208,13 +220,15 @@ class Search:
     
     def setJobKeyId(self, key:str):
         self.jobKeyId = key
-        if self.jobListRetType == 'json':
-            self.jobKeyId, jobListPathKeyIds = self.jobKeyId.split(';') if ';' in self.jobKeyId else (self.jobKeyId, '')
-            self.jobListPathKeyIds = jobListPathKeyIds.split(',') if ',' in self.jobListPathKeyIds else []
+        if ';' in self.jobKeyId:
+            self.jobKeyId, jobListPathKeyIds = self.jobKeyId.split(';')
+            self.jobKeyId = self.jobKeyId.split(',')
+            self.jobListPathKeyIds = jobListPathKeyIds.split(',')
     
     def getJobKeyId(self):
         ret = self.jobKeyId
         if self.jobListRetType == 'json' and self.jobListPathKeyIds:
+            ret = ','.join(ret)
             ret += ';'+','.join(self.jobListPathKeyIds)
         return ret
 
@@ -297,6 +311,7 @@ class Search:
         if ';' in jobKeyId:
             jobKeyId, jobListPathKeyIds = jobKeyId.split(';')
             jobListPathKeyIds = jobListPathKeyIds.split(',')
+            jobKeyId = jobKeyId.split(',')
             creationDict['jobKeyId'] = jobKeyId
             creationDict['jobListPathKeyIds'] = jobListPathKeyIds
 
