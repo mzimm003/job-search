@@ -195,6 +195,11 @@ class GUIProfile(Module):
         k = self.profile.getName()+str(k)
         return super().getKey(k, withCount)
     
+    def cleanAliases(self):
+        super().cleanAliases()
+        with open("Search/~profiles.pkl", "wb") as f:
+            pickle.dump(self.portfolio, f)
+    
     def newWindow(self):
         column_widths = [200,200,-1]
         with dpg.window(
@@ -377,16 +382,20 @@ class GUIProfile(Module):
                 profile = Profile.bySearch(search)
                 self.__updatePortfolio(profile)
             dpg.delete_item(user_data)
-            dpg.delete_item(close_win)
+            if dpg.get_item_label(close_win) == Profile.NEWPROFILE.upper():
+                dpg.delete_item(close_win)
         wrapped_text = textWrapper(
             dpg.get_value(self.getKey(GUIProfile.ELEMENTS.MLSEARCHHEADER)),
             wrap_len=65)
+        def justClose(sender, app_data, user_data):
+            dpg.delete_item(user_data)
 
-        with dpg.window(label="Search Phrase", modal=True, tag="temp_win"):
+
+        with dpg.window(label="Search Phrase", modal=True, height=600, width=500, tag="temp_win", user_data="temp_win", on_close=justClose):
             dpg.add_text("Please identify the\nsearch phrase in the url:")
             dpg.add_input_text(
                 default_value=wrapped_text,
-                width=500, height=70,
+                width=-1, height=480,
                 multiline=True,
                 readonly=True)
             dpg.add_input_text(default_value="", width=300, tag="temp")
@@ -438,7 +447,7 @@ class GUIProfile(Module):
             search_header = self.__getSearchRequest(fake_key)
             search = self.__getSearch(search_header)
             links = search.peekLinks(reqDict=search_header.getRequestDict(fake_key))
-            if dpg.get_value(self.getKey(GUIProfile.ELEMENTS.SEARCHRETTYPE)==GUIProfile.OPTIONS.RETTYPE[0]):
+            if dpg.get_value(self.getKey(GUIProfile.ELEMENTS.SEARCHRETTYPE))==GUIProfile.OPTIONS.RETTYPE[0]:
                 dpg.configure_item(self.getKey(GUIProfile.ELEMENTS.LINKSLL), items=links)
             else:
                 def build_tree(parent, json):
