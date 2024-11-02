@@ -1,0 +1,29 @@
+[tool.poetry]
+name = "jobsearch"
+version = "0.1.0"
+description = ""
+authors = ["Mark Zimmerman <mzimm003@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+dearpygui = "*"
+google-generativeai = "*"
+pytest = {version = "*", optional = true}
+python = ">=3.13"
+PyLaTeX = "*"
+python-gnupg = "*"
+requests-html = "*"
+lxml_html_clean = "*"
+sphinx = {version = "*", optional = true}
+sphinx_design = {version = "*", optional = true}
+sphinxcontrib-bibtex = {version = "*", optional = true}
+streamlit = {version = "*", optional = true}
+
+[tool.poetry.extras]
+documentation = ["sphinx", "sphinx_design", "sphinxcontrib-bibtex"]
+testing = ["pytest"]
+browser = ["streamlit"]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
