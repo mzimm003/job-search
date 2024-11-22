@@ -3,9 +3,26 @@ from statistics import mean
 from collections import Counter
 from jobsearch.resumes.resume import Resume
 import time
+import abc
 
-class Model:
+class Model(abc.ABC):
     def __init__(self, api_key) -> None:
+        self.model = self.load(api_key=api_key)
+
+    @abc.abstractmethod
+    def generate_content(self, prompt):
+        ...
+
+    @abc.abstractmethod
+    def load(self, api_key):
+        ...
+
+class GoogleGemini(Model):
+    model:genai.GenerativeModel
+    def __init__(self, api_key) -> None:
+        super().__init__(api_key=api_key)
+
+    def load(self, api_key):
         genai.configure(api_key=api_key)
         config = genai.GenerationConfig(
             # candidate_count = 4,
@@ -15,10 +32,9 @@ class Model:
             top_p = .8,
             top_k = 1024
             )
-        self.model = genai.GenerativeModel('gemini-pro', generation_config=config)
+        return genai.GenerativeModel('gemini-pro', generation_config=config)
 
     def generate_content(self, prompt):
-        # time.sleep(.1)
         return self.model.generate_content(prompt)
 
 class LLM:

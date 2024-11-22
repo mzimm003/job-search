@@ -21,7 +21,7 @@ class Configuration(configparser.ConfigParser):
     CONFIG_FILE="config.ini"
     def __init__(
             self,
-            dir="./jobs",
+            directory="./jobs",
             defaults=None,
             dict_type=configparser._default_dict,
             allow_no_value=False,
@@ -48,8 +48,8 @@ class Configuration(configparser.ConfigParser):
             converters=converters,
             allow_unnamed_section=allow_unnamed_section,
         )
-        dir = Path(dir)
-        self.config_file = dir/Configuration.CONFIG_FILE
+        directory = Path(directory)
+        self.config_file = directory/Configuration.CONFIG_FILE
         if self.config_file.exists():
             self.read(self.config_file)
         else:
@@ -90,9 +90,9 @@ class Configuration(configparser.ConfigParser):
 class Backend:
     def __init__(
             self,
-            configuration_file,
+            configuration_dir,
             ) -> None:
-        self.configuration = Configuration()
+        self.configuration = Configuration(directory=configuration_dir)
 
         self.gpg = gnupg.GPG(
             gnupghome=self.configuration.get(

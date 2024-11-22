@@ -8,7 +8,7 @@ import argparse
 import os
 import configparser
 
-def main(debug=False, config_file=None):
+def main(debug=False, config_dir=None):
     config_parse = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
     config_parse.read(config_file)
     config = config_parse[platform.system()]
@@ -28,7 +28,7 @@ def main(debug=False, config_file=None):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--debug", action='store_true')
-    parser.add_argument("-c","--config", default="./config.ini")
+    parser.add_argument("-c","--config-dir", default="./jobs")
     args = parser.parse_args()
 
-    main(debug=args.debug, config_file=args.config)
+    main(debug=args.debug, config_dir=args.config_dir)
