@@ -1,14 +1,30 @@
+from jobsearch.search.search import Search
+
+import enum
+import datetime
+import pickle
 from typing import (
     List,
     Dict,
 )
-from jobsearch.search.search import Search
-import enum
-import datetime
+from pathlib import Path
 
 class Portfolio:
     def __init__(self) -> None:
         self.profiles:Dict[str,'Profile'] = {}
+    
+    @classmethod
+    def byDirectory(cls, directory:str|Path):
+        directory = Path(directory)
+        portfolio_file = directory/'profiles.pkl'
+        portfolio = None
+        if portfolio_file.exists():
+            with open(portfolio_file, 'rb') as f:
+                portfolio = pickle.load(f)
+        else:
+            portfolio = cls()
+            portfolio.addProfile(Profile.default())
+        return cls()
     
     def addProfile(self, prof:'Profile'):
         self.profiles[prof.getName()] = prof
