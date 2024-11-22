@@ -25,10 +25,11 @@ from copy import deepcopy
 import datetime
 
 class Module(abc.ABC):
-    def __init__(self) -> None:
+    def __init__(self, backend) -> None:
         super().__init__()
         self.keys = Keys(self.__class__)
         self.aliasesCreated = []
+        self.backend = backend
     @abc.abstractmethod
     def newWindow(self):
         pass
@@ -75,10 +76,9 @@ class GUIMain(Module):
     
     def __init__(
             self,
-            portfolio=None,
-            llm=None
+            backend
             ) -> None:
-        super().__init__()
+        super().__init__(backend=backend)
         self.portfolio:Portfolio = portfolio
         self.llm = llm
         # self.modules:Dict[str,List[Module]] = {}

@@ -10,13 +10,14 @@ from typing import (
 from pathlib import Path
 
 class Portfolio:
+    FILENAME = "profiles.pkl"
     def __init__(self) -> None:
         self.profiles:Dict[str,'Profile'] = {}
     
     @classmethod
     def byDirectory(cls, directory:str|Path):
         directory = Path(directory)
-        portfolio_file = directory/'profiles.pkl'
+        portfolio_file = directory / cls.FILENAME
         portfolio = None
         if portfolio_file.exists():
             with open(portfolio_file, 'rb') as f:

@@ -7,6 +7,7 @@ import platform
 import enum
 import os
 import json
+import pickle
 from pathlib import Path
 
 class ConfigurationElements(enum.Enum):
@@ -119,3 +120,9 @@ class Backend:
                 option
                 )
         self.llm = LLM(api_key=LLM_API_key)
+
+    def save_portfolio(self):
+        port_file = Path(self.configuration.get(
+            ConfigurationElements.save_dir.name)) / Portfolio.FILENAME
+        with open(port_file, "wb") as f:
+            pickle.dump(self.portfolio, f)
