@@ -10,6 +10,8 @@ import json
 import pickle
 from pathlib import Path
 
+from collections.abc import ItemsView
+
 class ConfigurationElements(enum.Enum):
     save_dir = enum.auto()
     platform = enum.auto()
@@ -19,7 +21,7 @@ class ConfigurationElements(enum.Enum):
     default_llm = enum.auto()
 
 class Configuration(configparser.ConfigParser):
-    CONFIG_FILE="config.ini"
+    FILENAME="config.ini"
     def __init__(
             self,
             directory="./jobs",
@@ -50,7 +52,7 @@ class Configuration(configparser.ConfigParser):
             allow_unnamed_section=allow_unnamed_section,
         )
         directory = Path(directory)
-        self.config_file = directory/Configuration.CONFIG_FILE
+        self.config_file = directory/Configuration.FILENAME
         if self.config_file.exists():
             self.read(self.config_file)
         else:
@@ -59,34 +61,38 @@ class Configuration(configparser.ConfigParser):
     
     def default_config(self):
         self["DEFAULT"] = {
-        ConfigurationElements.save_dir.name: str(self.config_file.resolve()),
+        ConfigurationElements.save_dir.name: str(self.config_file.parent.resolve()),
         ConfigurationElements.platform.name:platform.system(),
         ConfigurationElements.API_Keys.name: "${save_dir}/api_keys.txt.gpg",
         ConfigurationElements.default_llm.name: "google_gemini"
         }
         self['Linux'] = {
             ConfigurationElements.gnupghome.name: "${HOME}/.gnupg",
-            ConfigurationElements.gpgbinary.name: "usr/bin/gpg",
+            ConfigurationElements.gpgbinary.name: "gpg",
         }
         self['Windows'] = {
             ConfigurationElements.gnupghome.name: "${APPDATA}\\gnupg",
             ConfigurationElements.gpgbinary.name: "C:\\Program Files (x86)\\gnupg\\bin\\gpg.exe",
         }
 
-    def get(
+    def gett(
             self,
             option,
             *,
             raw=False,
             vars=None,
             fallback=configparser._UNSET):
-        super().get(
-            section=self.platform,
-            option=option,
+        return self.get(
+            self.platform,
+            option,
             raw=raw,
             vars=vars,
             fallback=fallback,
         )
+    
+    def save(self, file_path):
+        with open(file_path, "w") as f:
+            self.write(f)
 
 class Backend:
     def __init__(
@@ -96,33 +102,76 @@ class Backend:
         self.configuration = Configuration(directory=configuration_dir)
 
         self.gpg = gnupg.GPG(
-            gnupghome=self.configuration.get(
+            gnupghome=self.configuration.gett(
                 ConfigurationElements.gnupghome.name,
                 vars=os.environ),
-            gpgbinary=self.configuration.get(
+            gpgbinary=self.configuration.gett(
                 ConfigurationElements.gpgbinary.name,
                 vars=os.environ)
             )
         self.portfolio = Portfolio.byDirectory(
-            self.configuration.get(ConfigurationElements.save_dir.name))
+            self.configuration.gett(ConfigurationElements.save_dir.name))
 
         self.llm:LLM = None
         self.set_llm(
-            self.configuration.get(ConfigurationElements.default_llm.name))
+            self.configuration.gett(ConfigurationElements.default_llm.name))
 
     def set_llm(self, option):
-        LLM_API_key_file = self.configuration.get(
+        LLM_API_key_file = self.configuration.gett(
             ConfigurationElements.API_Keys.name)
-        with open(LLM_API_key_file, 'rb') as f:
-            LLM_API_key = self.gpg.decrypt_file(f)
-            LLM_API_key = getattr(
-                json.loads(LLM_API_key.data),
-                option
-                )
-        self.llm = LLM(api_key=LLM_API_key)
+        if Path(LLM_API_key_file).exists():
+            with open(LLM_API_key_file, 'rb') as f:
+                LLM_API_key = self.gpg.decrypt_file(f)
+                LLM_API_key = getattr(
+                    json.loads(LLM_API_key.data),
+                    option
+                    )
+            self.llm = LLM(api_key=LLM_API_key)
 
     def save_portfolio(self):
-        port_file = Path(self.configuration.get(
-            ConfigurationElements.save_dir.name)) / Portfolio.FILENAME
-        with open(port_file, "wb") as f:
-            pickle.dump(self.portfolio, f)
+        save_dir = Path(self.configuration.gett(
+            ConfigurationElements.save_dir.name))
+        if not save_dir.exists():
+            save_dir.mkdir(parents=True)
+
+        config_file = save_dir / self.configuration.FILENAME
+        self.configuration.save(config_file)
+        
+        port_file =  save_dir / self.portfolio.FILENAME
+        self.portfolio.save(port_file)
+
+    def quicksave_portfolio(self):
+        save_dir = Path(self.configuration.gett(
+            ConfigurationElements.save_dir.name))
+        if not save_dir.exists():
+            save_dir.mkdir(parents=True)
+
+        config_file = save_dir / self.configuration.FILENAME
+        self.configuration.save(config_file)
+        
+        port_file =  save_dir / ("~"+self.portfolio.FILENAME)
+        self.portfolio.save(port_file)
+    
+    def get_profile_names(self):
+        return self.portfolio.getProfileNames()
+    
+    def select_profile_by_name(self, name):
+        return self.portfolio.selectProfileByName(name)
+    
+    def get_profiles(self):
+        return self.portfolio.getProfiles()
+    
+    def rename_profile(self, profile, name):
+        self.portfolio.renameProfile(profile, name)
+
+    def add_profile(self, profile):
+        self.portfolio.addProfile(profile)
+    
+    def historical_posts_iter(self):
+        return self.portfolio.getHistoricalPosts().items()
+    
+    def get_historical_posts(self):
+        return self.portfolio.getHistoricalPosts()
+    
+    def get_last_applied_for_profile_by_name(self, name):
+        return self.portfolio.selectProfileByName(name).getLastApplied()

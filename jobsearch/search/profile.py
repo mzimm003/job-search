@@ -25,38 +25,43 @@ class Portfolio:
         else:
             portfolio = cls()
             portfolio.addProfile(Profile.default())
-        return cls()
+        return portfolio
     
     def addProfile(self, prof:'Profile'):
         self.profiles[prof.getName()] = prof
 
     def getProfiles(self):
-        return self.profiles
+        return self.profiles.values()
     
     def getCurrentPosts(self):
-        return {n:p.getCurrentPosts() for n,p in self.getProfiles().items()}
+        return {n:p.getCurrentPosts() for n,p in self.profiles.items()}
     
     def getHistoricalPosts(self):
-        return {n:p.getHistoricalPosts() for n,p in self.getProfiles().items()}
+        return {n:p.getHistoricalPosts() for n,p in self.profiles.items()}
         
     def getProfileNames(self):
-        return list(self.getProfiles().keys())
+        return list(self.profiles.keys())
     
     def selectProfileByName(self, name):
-        return self.getProfiles()[name]
+        return self.profiles[name]
     
     def getNewJobs(self):
-        for p in self.getProfiles().values():
+        for p in self.profiles.values():
             p.gatherPosts()
 
     def CLEARALLPOSTS(self):
-        for p in self.getProfiles().values():
+        for p in self.profiles.values():
             p.CLEARALLPOSTS()
 
     def renameProfile(self, prof:'Profile', name:str):
         del self.profiles[prof.name]
         prof.setName(name)
         self.profiles[name] = prof
+    
+    def save(self, file_path):
+        with open(file_path, "wb") as f:
+            pickle.dump(self, f)
+
 
         
 class Profile:
