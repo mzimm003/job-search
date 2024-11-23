@@ -1,5 +1,6 @@
 import dearpygui.dearpygui as dpg
 import webbrowser
+from jobsearch.backend.backend import Backend
 from jobsearch.search.transforms import Transform, Request
 from jobsearch.search.profile import (
     Profile,
@@ -25,10 +26,11 @@ from copy import deepcopy
 import datetime
 
 class Module(abc.ABC):
-    def __init__(self) -> None:
+    def __init__(self, backend:Backend) -> None:
         super().__init__()
         self.keys = Keys(self.__class__)
         self.aliasesCreated = []
+        self.backend = backend
     @abc.abstractmethod
     def newWindow(self):
         pass
@@ -75,12 +77,9 @@ class GUIMain(Module):
     
     def __init__(
             self,
-            portfolio=None,
-            llm=None
+            backend
             ) -> None:
-        super().__init__()
-        self.portfolio:Portfolio = portfolio
-        self.llm = llm
+        super().__init__(backend=backend)
         # self.modules:Dict[str,List[Module]] = {}
 
     # def openModule(self, mod:Type[Module], **kwargs):
@@ -95,7 +94,7 @@ class GUIMain(Module):
                 with dpg.group(width=500):
                     dpg.add_text("Profiles")
                     dpg.add_listbox(
-                        [k for k in self.portfolio.getProfileNames()],
+                        [k for k in self.backend.get_profile_names()],
                         tag=self.getKey(GUIMain.ELEMENTS.PROFILES),
                         num_items=30)
                     dpg.add_button(
@@ -119,17 +118,19 @@ class GUIMain(Module):
 
     def openProfile(self, sender, app_data, user_data):
         profile_name = dpg.get_value(self.getKey(GUIMain.ELEMENTS.PROFILES))
-        prof_mod = GUIProfile.fromProfileAndPortfolio(self.portfolio.selectProfileByName(profile_name), self.portfolio, llm=self.llm)
+        prof_mod = GUIProfile.fromProfileAndBackend(
+            self.backend.select_profile_by_name(profile_name),
+            backend=self.backend)
         prof_mod.newWindow()
 
     def openJobs(self, sender, app_data, user_data):
-        job_mod = GUIJobs.fromPortfolio(self.portfolio, llm=self.llm)
+        job_mod = GUIJobs(self.backend)
         job_mod.newWindow()
 
     def getAllNewJobs(self, sender, app_data, user_data):
         windowUpdate = ''
         numNewJobs = 0 
-        for p in self.portfolio.getProfiles().values():
+        for p in self.backend.get_profiles():
             p.gatherPosts()
             numNewJobs += len(p.getCurrentPosts())
             windowUpdate += '\n{}:\n\t'.format(p.getName())
@@ -180,16 +181,13 @@ class GUIProfile(Module):
     def __init__(
             self,
             profile,
-            portfolio,
-            llm=None) -> None:
-        super().__init__()
+            backend) -> None:
+        super().__init__(backend=backend)
         self.profile:Profile = profile
-        self.portfolio:Portfolio = portfolio
-        self.llm = llm
     
     @classmethod
-    def fromProfileAndPortfolio(cls, profile:Profile, portfolio:Portfolio, llm:LLM=None):
-        return cls(profile, portfolio, llm=llm)
+    def fromProfileAndBackend(cls, profile:Profile, backend:Backend):
+        return cls(profile=profile, backend=backend)
     
     def getKey(self, k, withCount=False):
         k = self.profile.getName()+str(k)
@@ -197,8 +195,7 @@ class GUIProfile(Module):
     
     def cleanAliases(self):
         super().cleanAliases()
-        with open("Search/~profiles.pkl", "wb") as f:
-            pickle.dump(self.portfolio, f)
+        self.backend.quicksave_portfolio()
     
     def newWindow(self):
         column_widths = [200,200,-1]
@@ -352,7 +349,7 @@ class GUIProfile(Module):
             dpg.set_value(self.getKey(GUIProfile.ELEMENTS.DESCRIPTION), self.profile.samplePosts())
 
     def openJobDetail(self, sender, app_data, user_data):
-        job_mod = GUIJobs.fromPortfolio(self.portfolio, llm=self.llm)
+        job_mod = GUIJobs(backend=self.backend)
         job_mod.newWindow(self.profile.getName())
 
     def getCurrentJobs(self, sender, app_data, user_data):
@@ -488,11 +485,13 @@ class GUIProfile(Module):
     def __updatePortfolio(self, profile:Profile, renameProfile:bool=False):
         window_to_close = self.getKey(GUIProfile.ELEMENTS.WINDOW)
         if renameProfile:
-            self.portfolio.renameProfile(profile, dpg.get_value(self.getKey(GUIProfile.ELEMENTS.PROFILENAME)))
+            self.backend.rename_profile(
+                profile,
+                dpg.get_value(self.getKey(GUIProfile.ELEMENTS.PROFILENAME)))
         else:
-            self.portfolio.addProfile(profile)
-        dpg.configure_item(GUIMain().getKey(GUIMain.ELEMENTS.PROFILES), items=[k for k in self.portfolio.getProfileNames()])
-        new_prof = GUIProfile.fromProfileAndPortfolio(profile=profile, portfolio=self.portfolio)
+            self.backend.add_profile(profile)
+        dpg.configure_item(GUIMain().getKey(GUIMain.ELEMENTS.PROFILES), items=[k for k in self.backend.get_profile_names()])
+        new_prof = GUIProfile.fromProfileAndBackend(profile=profile, backend=self.backend)
         new_prof.newWindow()
         self.cleanAliases()
         dpg.delete_item(window_to_close)
@@ -542,21 +541,14 @@ class GUIJobs(Module):
 
     def __init__(
             self,
-            portfolio,
-            llm=None) -> None:
-        super().__init__()
-        self.portfolio:Portfolio = portfolio
+            backend
+            ) -> None:
+        super().__init__(backend=backend)
         self.table_selections = set([])
         self.table_company_rows = {}
         self.table_last_selected = None
-        self.llm = llm
         self.recent_time_unit = datetime.timedelta(6*30)
         
-    
-    @classmethod
-    def fromPortfolio(cls, portfolio:Portfolio, llm:LLM=None):
-        return cls(portfolio, llm=llm)
-    
     def __filt_key(self, x:str,y:str):
         x = x.replace(',','').replace('-','')
         y = y.replace(',','').replace('-','')
@@ -605,7 +597,7 @@ class GUIJobs(Module):
             with dpg.group(horizontal=True):
                 with dpg.child_window(width=700,height=600):
                     dpg.add_text("Job List")
-                    dpg.add_combo(["",*[p for p in self.portfolio.getProfiles()]],
+                    dpg.add_combo(["",*[p for p in self.backend.get_profile_names()]],
                                   default_value=comp,
                                   tag=self.getKey(GUIJobs.ELEMENTS.COMPFILTER),
                                   label="Company Filter",
@@ -625,7 +617,7 @@ class GUIJobs(Module):
                         dpg.add_table_column(label="", width_fixed=True, init_width_or_weight=table_widths[0])
                         for i, h in enumerate(GUIJobs.HEADINGS, 1):
                             dpg.add_table_column(label=h.name, width_fixed=True, init_width_or_weight=table_widths[i])
-                        for c, ps in self.portfolio.getHistoricalPosts().items():
+                        for c, ps in self.backend.historical_posts_iter():
                             if not c in self.table_company_rows:
                                 self.table_company_rows[c] = []
                             for p_n, p_c in ps.items():
@@ -641,7 +633,7 @@ class GUIJobs(Module):
                                     dpg.add_text(c)
                                     dpg.add_text(p_c.getStatus())
                                     dpg.add_text(p_c.getDatePulled())
-                                    last_app = self.portfolio.selectProfileByName(c).getLastApplied()
+                                    last_app = self.backend.get_last_applied_for_profile_by_name(c)
                                     recent_app = (not last_app is None and
                                                   last_app + self.recent_time_unit > datetime.date.today())
                                     dpg.add_text(str(recent_app))
@@ -682,7 +674,7 @@ class GUIJobs(Module):
             base_resume = dpg.get_value(self.getKey(GUIJobs.ELEMENTS.RESUME))
             if not base_resume:
                 base_resume = './Resumes/main/resume.pkl'
-            job = self.portfolio.getHistoricalPosts()[row_data[GUIJobs.HEADINGS.Company.name]][row_data[GUIJobs.HEADINGS.Job.name]]
+            job = self.backend.get_historical_posts()[row_data[GUIJobs.HEADINGS.Company.name]][row_data[GUIJobs.HEADINGS.Job.name]]
             res = Resume.loadResume(base_resume)
             res.setOrg(row_data[GUIJobs.HEADINGS.Company.name])
             res.setJob(row_data[GUIJobs.HEADINGS.Job.name])
@@ -693,7 +685,7 @@ class GUIJobs(Module):
     def viewWebsite(self, sender, app_data, user_data):
         for row in self.table_selections:
             row_data, row_keys = self.__get_row_info(row)
-            webbrowser.open(self.portfolio.getHistoricalPosts()[row_data[GUIJobs.HEADINGS.Company.name]][row_data[GUIJobs.HEADINGS.Job.name]].getLink())
+            webbrowser.open(self.backend.get_historical_posts()[row_data[GUIJobs.HEADINGS.Company.name]][row_data[GUIJobs.HEADINGS.Job.name]].getLink())
     
     def __get_row_info(self, row, bySelector=True):
         if bySelector:
@@ -711,20 +703,20 @@ class GUIJobs(Module):
         row_data, _ = self.__get_row_info(sender)
         dpg.set_value(
             self.getKey(GUIJobs.ELEMENTS.JOBDESC),
-            self.portfolio.getHistoricalPosts()[row_data[GUIJobs.HEADINGS.Company.name]][row_data[GUIJobs.HEADINGS.Job.name]].displayDescription())
+            self.backend.get_historical_posts()[row_data[GUIJobs.HEADINGS.Company.name]][row_data[GUIJobs.HEADINGS.Job.name]].displayDescription())
   
     def setJobAsApplied(self, sender, app_data, user_data):
         comps = set([])
         for row in self.table_selections:
             row_data, row_keys = self.__get_row_info(row)
             comps.add(row_data[GUIJobs.HEADINGS.Company.name])
-            status = self.portfolio.getHistoricalPosts()[row_data[GUIJobs.HEADINGS.Company.name]][row_data[GUIJobs.HEADINGS.Job.name]].toggleApplied()
+            status = self.backend.get_historical_posts()[row_data[GUIJobs.HEADINGS.Company.name]][row_data[GUIJobs.HEADINGS.Job.name]].toggleApplied()
             dpg.set_value(
                 row_keys[GUIJobs.HEADINGS.Status.name],
                 status)
             dpg.configure_item(dpg.get_item_parent(row), filter_key=self.__filt_key(row_data[GUIJobs.HEADINGS.Company.name], status))
         for c in comps:
-            last_app = self.portfolio.selectProfileByName(c).getLastApplied()
+            last_app = self.backend.get_last_applied_for_profile_by_name(c)
             recent_app = (not last_app is None and
                           last_app + self.recent_time_unit > datetime.date.today())
             for r in self.table_company_rows[c]:
@@ -739,14 +731,14 @@ class GUIJobs(Module):
         for row in self.table_selections:
             row_data, row_keys = self.__get_row_info(row)
             comps.add(row_data[GUIJobs.HEADINGS.Company.name])
-            status = self.portfolio.getHistoricalPosts()[row_data[GUIJobs.HEADINGS.Company.name]][row_data[GUIJobs.HEADINGS.Job.name]].toggleIgnore()
+            status = self.backend.get_historical_posts()[row_data[GUIJobs.HEADINGS.Company.name]][row_data[GUIJobs.HEADINGS.Job.name]].toggleIgnore()
             dpg.set_value(
                 row_keys[GUIJobs.HEADINGS.Status.name],
                 status
                 )
             dpg.configure_item(dpg.get_item_parent(row), filter_key=self.__filt_key(row_data[GUIJobs.HEADINGS.Company.name], status))
         for c in comps:
-            last_app = self.portfolio.selectProfileByName(c).getLastApplied()
+            last_app = self.backend.get_last_applied_for_profile_by_name(c)
             recent_app = (not last_app is None and
                           last_app + self.recent_time_unit > datetime.date.today())
             for r in self.table_company_rows[c]:

@@ -1,5 +1,6 @@
 Resume/
 .vscode/
+.venv/
 **/__pycache__
 test.txt
 text.html

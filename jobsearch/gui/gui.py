@@ -1,7 +1,7 @@
 import dearpygui.dearpygui as dpg
 from pathlib import Path
-import pickle
 
+from jobsearch.backend.backend import Backend
 from jobsearch.search.profile import (
     Profile,
     Portfolio
@@ -18,14 +18,12 @@ import traceback
 class GUI:
     def __init__(
             self,
-            portfolio:Portfolio=None,
-            llm:LLM=None,
+            backend:Backend,
             debug:bool=False,
             ) -> None:
-        self.portfolio = portfolio
-        self.llm = llm
+        self.backend = backend
         self.debug = debug
-        self.primaryWindow = GUIMain(self.portfolio, self.llm)
+        self.primaryWindow = GUIMain(backend=self.backend)
         dpg.create_context()
         # if self.debug:
         #     dpg.configure_app(manual_callback_management=True) #Cannot get non-manual callback to work with html_requests render
@@ -59,8 +57,7 @@ class GUI:
     
     def endProgram(self, sender, app_data, user_data):
         def Yes(sender, app_data, user_data):
-            with open("Search/profiles.pkl", "wb") as f:
-                pickle.dump(self.portfolio, f)
+            self.backend.save_portfolio()
             dpg.destroy_context()
         def No(sender, app_data, user_data):
             dpg.destroy_context()
@@ -70,23 +67,3 @@ class GUI:
             with dpg.group(horizontal=True):
                 dpg.add_button(label="Yes", callback=Yes)
                 dpg.add_button(label="No", callback=No)
-
-def main(LLM_API_Key='', debug=False):
-    port:Portfolio = Portfolio()
-    port.addProfile(Profile.default())
-    if Path('Search/profiles.pkl').exists():
-        with open('Search/profiles.pkl', 'rb') as f:
-            port = pickle.load(f)
-    llm = None
-    if LLM_API_Key:
-        llm = LLM(LLM_API_Key)
-    gui = GUI(portfolio=port, llm=llm, debug=debug)
-
-    gui.run()
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--debug", action="store_true")
-    args = parser.parse_args()
-
-    main(debug=args.debug)
