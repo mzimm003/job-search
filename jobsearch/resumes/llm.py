@@ -4,43 +4,164 @@ from collections import Counter
 from jobsearch.resumes.resume import Resume
 import time
 import abc
+import enum
+import json
+import dataclasses
+from pathlib import Path
+
+@dataclasses.dataclass
+class ModelOptions:
+    model_name:str
 
 class Model(abc.ABC):
-    def __init__(self, api_key) -> None:
-        self.model = self.load(api_key=api_key)
+    options:ModelOptions
+    def __init__(self, options:dict=None) -> None:
+        options = {} if options is None else options
+        self.options = self.options(**options)
 
     @abc.abstractmethod
     def generate_content(self, prompt):
         ...
 
     @abc.abstractmethod
-    def load(self, api_key):
+    def set_api(self, api_key):
         ...
+
+    @classmethod
+    def default_options(cls):
+        return dataclasses.asdict(cls.options())
+    
+    def get_options(self):
+        return dataclasses.asdict(self.options)
+
 
 class GoogleGemini(Model):
+    @dataclasses.dataclass
+    class Options(ModelOptions):
+        model_name:str = "gemini-pro"
+        temperature:float = 0.5
+        top_p:float = 0.8
+        top_k:int = 1024
+    
     model:genai.GenerativeModel
-    def __init__(self, api_key) -> None:
-        super().__init__(api_key=api_key)
+    options:Options = Options
 
-    def load(self, api_key):
-        genai.configure(api_key=api_key)
-        config = genai.GenerationConfig(
-            # candidate_count = 4,
-            # stop_sequences = None,
-            # max_output_tokens = None,
-            temperature = .5,
-            top_p = .8,
-            top_k = 1024
+    def __init__(self, options: dict = None) -> None:
+        super().__init__(options)
+        options = self.get_options()
+        model_name = options.pop("model_name")
+        self.model = genai.GenerativeModel(model_name)
+
+        self.gen_config = genai.GenerationConfig(
+            **options
             )
-        return genai.GenerativeModel('gemini-pro', generation_config=config)
+
+    def set_api(self, api_key):
+        genai.configure(api_key=api_key)
 
     def generate_content(self, prompt):
-        return self.model.generate_content(prompt)
+        return self.model.generate_content(
+            prompt,
+            generation_config=self.get_options())
+
+class LLMAPIOptions(enum.Enum):
+    Google = GoogleGemini
+    OpenAI = ... #TODO
+    Anthropic = ... #TODO
+    Microsoft = ... #TODO
+
+    def __call__(self, options):
+        return self.value(options=options)
+
+@dataclasses.dataclass
+class ModelCatalogEntry:
+    api_option:LLMAPIOptions
+    model_options:ModelOptions
+
+@dataclasses.dataclass
+class LLMCatalog:
+    models:dict[str, ModelCatalogEntry]
+    default:str = ""
+    
+    def __contains__(self, item):
+        return item in self.models
+
+    @classmethod
+    def from_json(cls, json_path):
+        ret = None
+        json_path = Path(json_path)
+        if json_path.exists():
+            with open(json_path, 'r') as f:
+                configs = json.load(f)
+                models = {}
+                for m,v in configs["models"].items():
+                    models[m] = ModelCatalogEntry(**v)
+                configs["models"] = models
+                ret = cls(**configs)
+        else:
+            ret = cls(**dict(models={}))
+        return ret
+
+    def to_json(self, json_path):
+        with open(json_path, 'w') as f:
+            json.dump(dataclasses.asdict(self), f)
+
+    def set_default(self, name:str):
+        self.default = name
+
+    def load_model(self, name:str)->Model:
+        model = None
+        if name in self.models:
+            model_class = LLMAPIOptions[self.models[name].api_option].value
+            model = model_class(self.models[name].model_options)
+            self.set_default(name)
+        return model
+    
+    def add_model(self, name:str, model:LLMAPIOptions):
+        self.models[name] = ModelCatalogEntry(
+            api_option = model.name,
+            model_options = model.value.default_options())
+
+    def get_llm_options(self):
+        return list(self.models.keys())
 
 class LLM:
-    def __init__(self, api_key, num_requests = 6) -> None:
+    def __init__(self, config_json_path, num_requests = 6) -> None:
         self.num_requests = num_requests
-        self.model = Model(api_key=api_key)
+        self.config_json_path = config_json_path
+        self.catalog = LLMCatalog.from_json(config_json_path)
+        self.model = self.catalog.load_model(self.catalog.default)
+
+    def save_catalog(self):
+        self.catalog.to_json(self.config_json_path)
+    
+    def get_catalog_options(self):
+        return self.catalog.get_llm_options()
+    
+    def get_catalog_default_option(self):
+        return self.catalog.default
+
+    def set_model(self, name:str, api_option:LLMAPIOptions=None):
+        if not name in self.catalog:
+            self.catalog.add_model(name, model=api_option)
+            
+        self.model = self.catalog.load_model(name=name)
+    
+    def set_api(self, api_key):
+        if api_key:
+            self.model.set_api(api_key=api_key)
+    
+    def get_model_API_by_name(self, name:str):
+        return self.catalog.models[name].api_option
+    
+    def get_model_API(self):
+        return LLMAPIOptions(self.model.__class__)
+
+    def set_model_options(self, options):
+        pass
+
+    def get_model_options(self):
+        return self.model.get_options()
 
     def getTips(self, resume:Resume, jobDesc):
         prompt = """** Prompt **\n\nProvide the key terms for the following job description, returning a simple bulleted list, and no header.\n\n** Example **\n\n- key term 1\n- key term 2\n...\n\n** Job Description **\n\n{}""".format(jobDesc)

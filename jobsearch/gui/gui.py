@@ -1,18 +1,9 @@
 import dearpygui.dearpygui as dpg
-from pathlib import Path
 
 from jobsearch.backend.backend import Backend
-from jobsearch.search.profile import (
-    Profile,
-    Portfolio
-)
-from jobsearch.gui.modules import (
-    GUIMain
-)
-from jobsearch.resumes.llm import LLM
+from jobsearch.gui.modules import GUIMain
 from jobsearch.search.utility import errorWindow
 
-import argparse
 import traceback
 
 class GUI:

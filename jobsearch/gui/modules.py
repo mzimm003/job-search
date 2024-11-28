@@ -12,6 +12,8 @@ from jobsearch.resumes.resume import Resume, Section, Subsection, ResumeRevision
 from jobsearch.resumes.llm import LLM
 from jobsearch.resumes.pdf import pdf
 from jobsearch.search.utility import errorWindow, textWrapper
+from jobsearch.gui.menu import Menu
+from jobsearch.gui.module import Module
 from typing import (
     List,
     Dict,
@@ -25,46 +27,6 @@ import traceback
 from copy import deepcopy
 import datetime
 
-class Module(abc.ABC):
-    def __init__(self, backend:Backend) -> None:
-        super().__init__()
-        self.keys = Keys(self.__class__)
-        self.aliasesCreated = []
-        self.backend = backend
-    @abc.abstractmethod
-    def newWindow(self):
-        pass
-    def proposePosition(self, offset=7):
-        pos = dpg.get_item_pos(dpg.get_active_window())
-        pos[0] += offset
-        pos[1] += offset
-        return pos
-    def getKey(self, k, withCount=False):
-        key = self.keys.getKey(k, withCount)
-        self.aliasesCreated.append(key)
-        return key
-    def cleanAliases(self):
-        for a in self.aliasesCreated:
-            if dpg.does_alias_exist(a):
-                dpg.remove_alias(a)
-
-class Keys:
-    def __init__(self, cls) -> None:
-        self.counts = {k:0 for k in cls.ELEMENTS}
-        self.cls = cls
-    def getKey(self, k, withCount=False):
-        key = str(self.cls)+str(k)
-        if withCount:
-            ret = self.counts[k]
-            self.counts[k] += 1
-            return str((key, ret))
-        else:
-            return key
-    def getKeyAppendingCount(self, k, count):
-        key = str(self.cls)+str(k)
-        return str((key, count))
-    def getKeyCount(self, k):
-        return self.counts[k]
 
 class GUIMain(Module):
     class ELEMENTS(enum.Enum):
@@ -80,16 +42,12 @@ class GUIMain(Module):
             backend
             ) -> None:
         super().__init__(backend=backend)
-        # self.modules:Dict[str,List[Module]] = {}
-
-    # def openModule(self, mod:Type[Module], **kwargs):
-    #     new_module = mod(**kwargs)
-
-    #     self.modules[new_module.getName()] = 
+        self.menu = Menu(backend=self.backend)
 
     def newWindow(self):
         tag = self.getKey(GUIMain.ELEMENTS.WINDOW)
         with dpg.window(tag=tag, on_close=self.cleanAliases):
+            self.menu.newWindow()
             with dpg.group(horizontal=True):
                 with dpg.group(width=500):
                     dpg.add_text("Profiles")
