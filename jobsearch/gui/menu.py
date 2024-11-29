@@ -92,12 +92,13 @@ class LLMOptions(Module):
                 with dpg.group():
                     dpg.add_child_window(
                         tag=self.getKey(LLMOptions.ELEMENTS.OPTION),
-                        height=-1)
+                        height=dpg.get_item_height(self.getKey(LLMOptions.ELEMENTS.SELECTION))-50)
                     self.add_options()
                     with dpg.group(horizontal=True):
                         dpg.add_button(
                             label="Save Changes",
                             callback=self.update_options)
+                        dpg.add_spacer(width=275)
                         dpg.add_button(
                             label="DELETE MODEL",
                             callback=self.delete_model)
