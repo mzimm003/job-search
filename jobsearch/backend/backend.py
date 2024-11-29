@@ -175,9 +175,18 @@ class Backend:
     def get_llm_api_options(self):
         return list(x.name for x in LLMAPIOptions if not x.value is ...)
     
+    def get_model_options_by_name(self, name:str)->dict:
+        return self.llm.get_model_options_by_name(name)
+    
+    def get_model_api_by_name(self, name:str)->dict:
+        return self.llm.get_model_API_by_name(name)
+    
     def get_default_options(self, api:str):
         api:Model = getattr(LLMAPIOptions, api).value
-        return api.default_options()
+        return api.default_options_asdict()
+    
+    def set_model_options_by_name(self, name:str, options:dict):
+        self.llm.set_model_options_by_name(name=name, options=options)
     
     def get_default_llm_model_name(self):
         return self.llm.get_catalog_default_option()
@@ -203,6 +212,9 @@ class Backend:
             model_options=model_options,
             api=getattr(LLMAPIOptions, api),
             api_key=api_key)
+
+    def delete_llm_model(self, model_name):
+        self.llm.delete_model(name=model_name)
 
     def save_portfolio(self):
         save_dir = Path(self.configuration.gett(

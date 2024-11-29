@@ -29,10 +29,22 @@ class Model(abc.ABC):
 
     @classmethod
     def default_options(cls):
-        return dataclasses.asdict(cls.options())
+        return cls.options()
     
     def get_options(self):
+        return self.options
+    
+    @classmethod
+    def default_options_asdict(cls):
+        return dataclasses.asdict(cls.options())
+    
+    def get_options_asdict(self):
         return dataclasses.asdict(self.options)
+    
+    def set_options(self, options:dict|ModelOptions):
+        if isinstance(options, ModelOptions):
+            options = dataclasses.asdict(options)
+        self.options = dataclasses.replace(self.options, **options)
 
 
 class GoogleGemini(Model):
@@ -48,7 +60,7 @@ class GoogleGemini(Model):
 
     def __init__(self, options: dict = None) -> None:
         super().__init__(options)
-        options = self.get_options()
+        options = self.get_options_asdict()
         model_name = options.pop("model_name")
         self.model = genai.GenerativeModel(model_name)
 
@@ -95,6 +107,8 @@ class LLMCatalog:
                 configs = json.load(f)
                 models = {}
                 for m,v in configs["models"].items():
+                    model = LLMAPIOptions[v["api_option"]].value
+                    v["model_options"] = model.options(**v["model_options"])
                     models[m] = ModelCatalogEntry(**v)
                 configs["models"] = models
                 ret = cls(**configs)
@@ -113,7 +127,7 @@ class LLMCatalog:
         model = None
         if name in self.models:
             model_class = LLMAPIOptions[self.models[name].api_option].value
-            model = model_class(self.models[name].model_options)
+            model = model_class(dataclasses.asdict(self.models[name].model_options))
             self.set_default(name)
         return model
     
@@ -121,6 +135,17 @@ class LLMCatalog:
         self.models[name] = ModelCatalogEntry(
             api_option = model.name,
             model_options = model.value.default_options())
+        
+    def delete_model(self, name:str):
+        del self.models[name]
+        if name == self.default:
+            self.default = list(self.models.keys())[0]
+    
+    def set_model_options(self, name:str, options:dict|ModelOptions):
+        if isinstance(options, ModelOptions):
+            options = dataclasses.asdict(options)
+        entry = self.models[name]
+        entry.model_options = dataclasses.replace(entry.model_options, **options)
 
     def get_llm_options(self):
         return list(self.models.keys())
@@ -144,8 +169,11 @@ class LLM:
     def set_model(self, name:str, api_option:LLMAPIOptions=None):
         if not name in self.catalog:
             self.catalog.add_model(name, model=api_option)
-            
         self.model = self.catalog.load_model(name=name)
+
+    def delete_model(self, name:str):
+        self.catalog.delete_model(name=name)
+        self.set_model(self.catalog.default)
     
     def set_api(self, api_key):
         if api_key:
@@ -158,10 +186,19 @@ class LLM:
         return LLMAPIOptions(self.model.__class__)
 
     def set_model_options(self, options):
-        pass
+        self.catalog.set_model_options(self.catalog.default, options=options)
+        self.model.set_options(options=options)
+
+    def set_model_options_by_name(self, name, options):
+        self.catalog.set_model_options(name, options=options)
+        if name == self.catalog.default:
+            self.model = self.catalog.load_model(name)
 
     def get_model_options(self):
         return self.model.get_options()
+    
+    def get_model_options_by_name(self, name:str):
+        return dataclasses.asdict(self.catalog.models[name].model_options)
 
     def getTips(self, resume:Resume, jobDesc):
         prompt = """** Prompt **\n\nProvide the key terms for the following job description, returning a simple bulleted list, and no header.\n\n** Example **\n\n- key term 1\n- key term 2\n...\n\n** Job Description **\n\n{}""".format(jobDesc)

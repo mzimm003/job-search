@@ -58,7 +58,105 @@ class Menu(Module):
             self.choose_llm(new_select,None,None)
     
     def llm_settings(self, sender, app_data, user_data):
-        ...
+        sett = LLMOptions(backend=self.backend, menu=self)
+        sett.newWindow()
+
+class LLMOptions(Module):
+    class ELEMENTS(enum.Enum):
+        WINDOW = enum.auto()
+        SELECTION = enum.auto()
+        OPTION = enum.auto()
+
+    def __init__(self, backend: Backend, menu:Menu) -> None:
+        super().__init__(backend)
+        self.menu = menu
+        self.options_mapping = {}
+        self.api_key_hidden = True
+
+    def newWindow(self):
+        tag = self.getKey(LLMOptions.ELEMENTS.WINDOW)
+        with dpg.window(
+            label="LLM Settings",
+            pos=self.proposePosition(),
+            on_close=self.cleanAliases,
+            tag=tag,
+            width=800):
+            with dpg.group(horizontal=True):
+                dpg.add_listbox(
+                    self.backend.get_llm_model_option_names(),
+                    tag=self.getKey(LLMOptions.ELEMENTS.SELECTION),
+                    num_items=25,
+                    width=300,
+                    callback=self.add_options,
+                    default_value=self.backend.get_default_llm_model_name())
+                with dpg.group():
+                    dpg.add_child_window(
+                        tag=self.getKey(LLMOptions.ELEMENTS.OPTION),
+                        height=-1)
+                    self.add_options()
+                    with dpg.group(horizontal=True):
+                        dpg.add_button(
+                            label="Save Changes",
+                            callback=self.update_options)
+                        dpg.add_button(
+                            label="DELETE MODEL",
+                            callback=self.delete_model)
+            with dpg.group(horizontal=True):
+                dpg.add_button(
+                    label="OK",
+                    callback=self.ok)
+                dpg.add_button(
+                    label="Cancel",
+                    callback=self.cancel)
+
+    def add_options(self):
+        model = dpg.get_value(self.getKey(LLMOptions.ELEMENTS.SELECTION))
+        dpg.delete_item(self.getKey(LLMOptions.ELEMENTS.OPTION), children_only=True)
+        for k,v in self.backend.get_model_options_by_name(name=model).items():
+            tag = self.getKey(LLMOptions.ELEMENTS.OPTION, withCount=True)
+            self.options_mapping[k] = tag
+            if type(v) in [int, float]:
+                dpg.add_input_text(
+                    default_value=str(v),
+                    label=k,
+                    decimal=True,
+                    tag=tag,
+                    parent=self.getKey(LLMOptions.ELEMENTS.OPTION))
+            elif type(v) in [str]:
+                dpg.add_input_text(
+                    default_value=v,
+                    label=k,
+                    tag=tag,
+                    parent=self.getKey(LLMOptions.ELEMENTS.OPTION))
+
+    def update_options(self):
+        model = dpg.get_value(self.getKey(LLMOptions.ELEMENTS.SELECTION))
+        options = {}
+        for o,key in self.options_mapping.items():
+            options[o] = dpg.get_value(key)
+        self.backend.set_model_options_by_name(
+            name=model,
+            options=options)
+
+    def refresh_llm_model_list(self):
+        dpg.configure_item(
+            self.getKey(LLMOptions.ELEMENTS.SELECTION),
+            items=self.backend.get_llm_model_option_names())
+
+    def delete_model(self):
+        model = dpg.get_value(self.getKey(LLMOptions.ELEMENTS.SELECTION))
+        self.backend.delete_llm_model(model)
+        self.refresh_llm_model_list()
+        self.menu.refresh_llm_options()
+
+    def ok(self):
+        self.update_options()
+        self.menu.refresh_llm_options()
+        dpg.delete_item(self.getKey(AddLLM.ELEMENTS.WINDOW))
+    
+    def cancel(self):
+        dpg.delete_item(self.getKey(AddLLM.ELEMENTS.WINDOW))
+
 
 class AddLLM(Module):
     class ELEMENTS(enum.Enum):
