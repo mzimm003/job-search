@@ -17,7 +17,7 @@ class Menu(Module):
                 dpg.add_menu_item(label="Save", callback=self.backend.save_portfolio)
 
             with dpg.menu(label="LLM"):
-                dpg.add_menu_item(label="Add LLM", callback=self.add_llm) #TODO, create callback
+                dpg.add_menu_item(label="Add LLM", callback=self.add_llm)
                 dpg.add_menu(label="Switch", tag=self.getKey(Menu.ELEMENTS.LLM_OPTIONS))
                 self.refresh_llm_options()
                 self.select_llm_by_name(self.backend.get_default_llm_model_name())

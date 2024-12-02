@@ -18,7 +18,6 @@ class ConfigurationElements(enum.Enum):
     API_Keys = enum.auto()
     gnupghome = enum.auto()
     gpgbinary = enum.auto()
-    gpguser = enum.auto()
     llm_configs = enum.auto()
 
 class Configuration(configparser.ConfigParser):
@@ -26,7 +25,6 @@ class Configuration(configparser.ConfigParser):
     def __init__(
             self,
             directory="./jobs",
-            user="",
             defaults=None,
             dict_type=configparser._default_dict,
             allow_no_value=False,
@@ -55,7 +53,6 @@ class Configuration(configparser.ConfigParser):
         )
         directory = Path(directory)
         self.config_file = directory/Configuration.FILENAME
-        self.user = user
         if self.config_file.exists():
             self.read(self.config_file)
         else:
@@ -66,9 +63,8 @@ class Configuration(configparser.ConfigParser):
         self["DEFAULT"] = {
         ConfigurationElements.save_dir.name: str(self.config_file.parent.resolve()),
         ConfigurationElements.platform.name:platform.system(),
-        ConfigurationElements.API_Keys.name: "${save_dir}/api_keys.txt.gpg",
-        ConfigurationElements.llm_configs.name: "${save_dir}/llm_configs.json",
-        ConfigurationElements.gpguser.name: self.user,
+        ConfigurationElements.API_Keys.name: "api_keys.txt.gpg",
+        ConfigurationElements.llm_configs.name: "llm_configs.json"
         }
         self['Linux'] = {
             ConfigurationElements.gnupghome.name: "${HOME}/.gnupg",
@@ -99,14 +95,13 @@ class Configuration(configparser.ConfigParser):
             self.write(f)
 
 class Backend:
+    GPG_KEY_ID = "JOBSEARCHID"
     def __init__(
             self,
             configuration_dir,
-            user="",
             ) -> None:
         self.configuration = Configuration(
-            directory=configuration_dir,
-            user=user)
+            directory=configuration_dir)
 
         self.gpg = gnupg.GPG(
             gnupghome=self.configuration.gett(
@@ -116,30 +111,73 @@ class Backend:
                 ConfigurationElements.gpgbinary.name,
                 vars=os.environ)
             )
-        self.ensure_api_key_file_existence()
-        self.portfolio = Portfolio.byDirectory(
-            self.configuration.gett(ConfigurationElements.save_dir.name))
+        self.portfolio:Portfolio = None
+        self.llm:LLM = None
+        self.user:str = None
+        self.gpguser:str = None
 
-        self.llm:LLM = LLM(
-            config_json_path=self.configuration.gett(ConfigurationElements.llm_configs.name))
+    def get_user_save_dir(self, user):
+        save_dir = Path(
+            self.configuration.gett(ConfigurationElements.save_dir.name))
+        return save_dir / user
+    
+    def get_user_api_keys_path(self, user):
+        save_dir = self.get_user_save_dir(user)
+        api_path = save_dir / self.configuration.gett(
+            ConfigurationElements.API_Keys.name)
+        return api_path
+    
+    def set_user(self, user:str):
+        self.user = user
+        self.gpguser = "{} ({})".format(self.user, Backend.GPG_KEY_ID)
+
+        save_dir = self.get_user_save_dir(self.user)
+        
+        self.verify_user()
+        self.ensure_api_key_file_existence()
+        
+        llm_config_path = save_dir / self.configuration.gett(ConfigurationElements.llm_configs.name)
+        self.llm = LLM(config_json_path=llm_config_path)
+
+        self.portfolio = Portfolio.byDirectory(directory=save_dir)
+
+    def create_user(self, user:str):
+        save_dir = self.get_user_save_dir(user)
+        if not save_dir.exists():
+            save_dir.mkdir(parents=True)
+        self.create_user_key(user)
+        self.set_user(user=user)
+
+    def create_user_key(self, user:str):
+        self.gpg.gen_key(
+            self.gpg.gen_key_input(name_real=user, name_comment=Backend.GPG_KEY_ID))
+
+    def get_users(self):
+        return [
+            x.split(" ({}) ".format(Backend.GPG_KEY_ID))[0]
+            for x
+            in self.gpg.list_keys(keys=Backend.GPG_KEY_ID).uids]
+
+    def verify_user(self):
+        if not self.gpg.list_keys(keys=self.gpguser):
+            raise ValueError("User not found.")
+        if not self.get_user_save_dir(self.user).exists():
+            raise ValueError("Missing profile directory.")
 
     def encrypt(self, data):
         return self.gpg.encrypt(
             data,
-            self.configuration.gett(
-                ConfigurationElements.gpguser.name))
-    
+            self.gpguser)
+
     def ensure_api_key_file_existence(self):
-        LLM_API_key_file = self.configuration.gett(
-            ConfigurationElements.API_Keys.name)
+        LLM_API_key_file = self.get_user_api_keys_path(self.user)
         if not Path(LLM_API_key_file).exists():
             Path(LLM_API_key_file).parent.mkdir(parents=True, exist_ok=True)
             with open(LLM_API_key_file, 'wb') as f:
                 f.write(self.encrypt(b'{}').data)
 
     def api_key_exists(self, api):
-        LLM_API_key_file = self.configuration.gett(
-            ConfigurationElements.API_Keys.name)
+        LLM_API_key_file = self.get_user_api_keys_path(self.user)
         contains = False
         with open(LLM_API_key_file, 'rb') as f:
             LLM_API_key = self.gpg.decrypt_file(f)
@@ -147,8 +185,7 @@ class Backend:
         return contains
 
     def read_api_key(self, api):
-        LLM_API_key_file = self.configuration.gett(
-            ConfigurationElements.API_Keys.name)
+        LLM_API_key_file = self.get_user_api_keys_path(self.user)
         LLM_API_key = None
         with open(LLM_API_key_file, 'rb') as f:
             LLM_API_key = self.gpg.decrypt_file(f)
@@ -156,8 +193,7 @@ class Backend:
         return LLM_API_key
 
     def write_api_key(self, api, api_key):
-        LLM_API_key_file = self.configuration.gett(
-            ConfigurationElements.API_Keys.name)
+        LLM_API_key_file = self.get_user_api_keys_path(self.user)
         with open(LLM_API_key_file, 'rb+') as f:
             LLM_API_keys = json.loads(self.gpg.decrypt_file(f).data)
             if not api_key and not api in LLM_API_keys:
@@ -217,8 +253,7 @@ class Backend:
         self.llm.delete_model(name=model_name)
 
     def save_portfolio(self):
-        save_dir = Path(self.configuration.gett(
-            ConfigurationElements.save_dir.name))
+        save_dir = self.get_user_save_dir(self.user)
         if not save_dir.exists():
             save_dir.mkdir(parents=True)
 
@@ -231,8 +266,7 @@ class Backend:
         self.llm.save_catalog()
 
     def quicksave_portfolio(self):
-        save_dir = Path(self.configuration.gett(
-            ConfigurationElements.save_dir.name))
+        save_dir = self.get_user_save_dir(self.user)
         if not save_dir.exists():
             save_dir.mkdir(parents=True)
 
