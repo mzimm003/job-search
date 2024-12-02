@@ -1,5 +1,5 @@
 from jobsearch.search.profile import Portfolio
-from jobsearch.resumes.llm import LLM
+from jobsearch.resumes.llm import LLM, LLMAPIOptions, Model
 
 import gnupg
 import configparser
@@ -18,13 +18,15 @@ class ConfigurationElements(enum.Enum):
     API_Keys = enum.auto()
     gnupghome = enum.auto()
     gpgbinary = enum.auto()
-    default_llm = enum.auto()
+    gpguser = enum.auto()
+    llm_configs = enum.auto()
 
 class Configuration(configparser.ConfigParser):
     FILENAME="config.ini"
     def __init__(
             self,
             directory="./jobs",
+            user="",
             defaults=None,
             dict_type=configparser._default_dict,
             allow_no_value=False,
@@ -53,6 +55,7 @@ class Configuration(configparser.ConfigParser):
         )
         directory = Path(directory)
         self.config_file = directory/Configuration.FILENAME
+        self.user = user
         if self.config_file.exists():
             self.read(self.config_file)
         else:
@@ -64,7 +67,8 @@ class Configuration(configparser.ConfigParser):
         ConfigurationElements.save_dir.name: str(self.config_file.parent.resolve()),
         ConfigurationElements.platform.name:platform.system(),
         ConfigurationElements.API_Keys.name: "${save_dir}/api_keys.txt.gpg",
-        ConfigurationElements.default_llm.name: "google_gemini"
+        ConfigurationElements.llm_configs.name: "${save_dir}/llm_configs.json",
+        ConfigurationElements.gpguser.name: self.user,
         }
         self['Linux'] = {
             ConfigurationElements.gnupghome.name: "${HOME}/.gnupg",
@@ -98,8 +102,11 @@ class Backend:
     def __init__(
             self,
             configuration_dir,
+            user="",
             ) -> None:
-        self.configuration = Configuration(directory=configuration_dir)
+        self.configuration = Configuration(
+            directory=configuration_dir,
+            user=user)
 
         self.gpg = gnupg.GPG(
             gnupghome=self.configuration.gett(
@@ -109,24 +116,105 @@ class Backend:
                 ConfigurationElements.gpgbinary.name,
                 vars=os.environ)
             )
+        self.ensure_api_key_file_existence()
         self.portfolio = Portfolio.byDirectory(
             self.configuration.gett(ConfigurationElements.save_dir.name))
 
-        self.llm:LLM = None
-        self.set_llm(
-            self.configuration.gett(ConfigurationElements.default_llm.name))
+        self.llm:LLM = LLM(
+            config_json_path=self.configuration.gett(ConfigurationElements.llm_configs.name))
 
-    def set_llm(self, option):
+    def encrypt(self, data):
+        return self.gpg.encrypt(
+            data,
+            self.configuration.gett(
+                ConfigurationElements.gpguser.name))
+    
+    def ensure_api_key_file_existence(self):
         LLM_API_key_file = self.configuration.gett(
             ConfigurationElements.API_Keys.name)
-        if Path(LLM_API_key_file).exists():
-            with open(LLM_API_key_file, 'rb') as f:
-                LLM_API_key = self.gpg.decrypt_file(f)
-                LLM_API_key = getattr(
-                    json.loads(LLM_API_key.data),
-                    option
-                    )
-            self.llm = LLM(api_key=LLM_API_key)
+        if not Path(LLM_API_key_file).exists():
+            Path(LLM_API_key_file).parent.mkdir(parents=True, exist_ok=True)
+            with open(LLM_API_key_file, 'wb') as f:
+                f.write(self.encrypt(b'{}').data)
+
+    def api_key_exists(self, api):
+        LLM_API_key_file = self.configuration.gett(
+            ConfigurationElements.API_Keys.name)
+        contains = False
+        with open(LLM_API_key_file, 'rb') as f:
+            LLM_API_key = self.gpg.decrypt_file(f)
+            contains = api in json.loads(LLM_API_key.data)
+        return contains
+
+    def read_api_key(self, api):
+        LLM_API_key_file = self.configuration.gett(
+            ConfigurationElements.API_Keys.name)
+        LLM_API_key = None
+        with open(LLM_API_key_file, 'rb') as f:
+            LLM_API_key = self.gpg.decrypt_file(f)
+            LLM_API_key = json.loads(LLM_API_key.data)[api]
+        return LLM_API_key
+
+    def write_api_key(self, api, api_key):
+        LLM_API_key_file = self.configuration.gett(
+            ConfigurationElements.API_Keys.name)
+        with open(LLM_API_key_file, 'rb+') as f:
+            LLM_API_keys = json.loads(self.gpg.decrypt_file(f).data)
+            if not api_key and not api in LLM_API_keys:
+                raise ValueError("Missing API Key.")
+            if api_key:
+                f.seek(0)
+                f.truncate()
+                LLM_API_keys[api] = api_key
+                f.write(
+                    self.encrypt(str.encode(json.dumps(LLM_API_keys))).data)
+
+    def get_llm_model_option_names(self):
+        return self.llm.get_catalog_options()
+    
+    def get_llm_api_options(self):
+        return list(x.name for x in LLMAPIOptions if not x.value is ...)
+    
+    def get_model_options_by_name(self, name:str)->dict:
+        return self.llm.get_model_options_by_name(name)
+    
+    def get_model_api_by_name(self, name:str)->dict:
+        return self.llm.get_model_API_by_name(name)
+    
+    def get_default_options(self, api:str):
+        api:Model = getattr(LLMAPIOptions, api).value
+        return api.default_options_asdict()
+    
+    def set_model_options_by_name(self, name:str, options:dict):
+        self.llm.set_model_options_by_name(name=name, options=options)
+    
+    def get_default_llm_model_name(self):
+        return self.llm.get_catalog_default_option()
+    
+    def set_llm_model(self, model_name, model_options=None, api=None, api_key=None):
+        self.llm.set_model(name=model_name, api_option=api)
+        if model_options:
+            self.llm.set_model_options(options=model_options)
+
+        if not api_key:
+            api = self.llm.get_model_API().name
+            api_key = self.read_api_key(api=api)
+
+        if api_key is None:
+            raise ValueError("Missing API Key.")
+        else:
+            self.llm.set_api(api_key=api_key)
+
+    def add_llm_model(self, api, api_key, model_name, model_options):
+        self.write_api_key(api=api, api_key=api_key)
+        self.set_llm_model(
+            model_name=model_name,
+            model_options=model_options,
+            api=getattr(LLMAPIOptions, api),
+            api_key=api_key)
+
+    def delete_llm_model(self, model_name):
+        self.llm.delete_model(name=model_name)
 
     def save_portfolio(self):
         save_dir = Path(self.configuration.gett(
@@ -140,6 +228,8 @@ class Backend:
         port_file =  save_dir / self.portfolio.FILENAME
         self.portfolio.save(port_file)
 
+        self.llm.save_catalog()
+
     def quicksave_portfolio(self):
         save_dir = Path(self.configuration.gett(
             ConfigurationElements.save_dir.name))
@@ -151,7 +241,9 @@ class Backend:
         
         port_file =  save_dir / ("~"+self.portfolio.FILENAME)
         self.portfolio.save(port_file)
-    
+
+        self.llm.save_catalog()
+
     def get_profile_names(self):
         return self.portfolio.getProfileNames()
     

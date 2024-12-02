@@ -62,8 +62,6 @@ class Portfolio:
         with open(file_path, "wb") as f:
             pickle.dump(self, f)
 
-
-        
 class Profile:
     NEWPROFILE = "--New--"
     def __init__(
