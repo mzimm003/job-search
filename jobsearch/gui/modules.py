@@ -28,6 +28,87 @@ from copy import deepcopy
 import datetime
 
 
+class GUISignIn(Module):
+    class ELEMENTS(enum.Enum):
+        WINDOW = enum.auto()
+        SELECTION = enum.auto()
+        ADDUSER = enum.auto()
+
+    def __init__(self, backend: Backend, primary_window: "GUIMain") -> None:
+        super().__init__(backend)
+        self.primary_window = primary_window
+
+    def newWindow(self):
+        tag = self.getKey(GUISignIn.ELEMENTS.WINDOW)
+        with dpg.window(
+            label="User Sign In",
+            on_close=self.cleanAliases,
+            tag=tag,
+            autosize=True,
+            pos=[300,300]
+            ):
+            with dpg.group(horizontal=True):
+                with dpg.group():
+                    dpg.add_listbox(
+                        self.backend.get_users(),
+                        tag=self.getKey(GUISignIn.ELEMENTS.SELECTION),
+                        num_items=8,
+                        width=300)
+                    dpg.add_button(label="Add", callback=self.add_user)
+                dpg.add_button(label="Sign In", callback=self.sign_in)
+
+    def sign_in(self):
+        name = dpg.get_value(self.getKey(GUISignIn.ELEMENTS.SELECTION))
+        self.backend.set_user(name)
+        dpg.delete_item(self.getKey(GUISignIn.ELEMENTS.WINDOW))
+        self.primary_window.newWindow()
+
+    def add_user(self):
+        au = GUIAddUser(backend=self.backend, menu=self)
+        au.newWindow()
+
+    def refresh_user_list(self):
+        dpg.configure_item(
+            self.getKey(GUISignIn.ELEMENTS.SELECTION),
+            items=self.backend.get_users())
+            
+class GUIAddUser(Module):
+    class ELEMENTS(enum.Enum):
+        WINDOW = enum.auto()
+        NAME = enum.auto()
+        ADDUSER = enum.auto()
+
+    def __init__(self, backend: Backend, menu:GUISignIn) -> None:
+        super().__init__(backend)
+        self.menu = menu
+
+    def newWindow(self):
+        tag = self.getKey(GUIAddUser.ELEMENTS.WINDOW)
+        with dpg.window(
+            label="Create User",
+            pos=self.proposePosition(),
+            on_close=self.cleanAliases,
+            tag=tag,
+            width=300,
+            modal=True
+            ):
+            dpg.add_input_text(
+                label="User Name",
+                tag=self.getKey(GUIAddUser.ELEMENTS.NAME))
+            with dpg.group(horizontal=True):
+                dpg.add_button(label="OK", callback=self.ok)
+                dpg.add_button(label="Cancel", callback=self.cancel)
+
+    def ok(self):
+        name = dpg.get_value(self.getKey(GUIAddUser.ELEMENTS.NAME))
+        self.backend.create_user(name)
+        self.menu.refresh_user_list()
+        dpg.delete_item(self.getKey(GUIAddUser.ELEMENTS.WINDOW))
+    
+    def cancel(self):
+        dpg.delete_item(self.getKey(GUIAddUser.ELEMENTS.WINDOW))
+
+
 class GUIMain(Module):
     class ELEMENTS(enum.Enum):
         WINDOW = enum.auto()

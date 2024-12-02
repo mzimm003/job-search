@@ -1,7 +1,7 @@
 import dearpygui.dearpygui as dpg
 
 from jobsearch.backend.backend import Backend
-from jobsearch.gui.modules import GUIMain
+from jobsearch.gui.modules import GUIMain, GUISignIn
 from jobsearch.search.utility import errorWindow
 
 import traceback
@@ -15,6 +15,9 @@ class GUI:
         self.backend = backend
         self.debug = debug
         self.primaryWindow = GUIMain(backend=self.backend)
+        self.sign_in = GUISignIn(
+            backend=self.backend,
+            primary_window=self.primaryWindow)
         dpg.create_context()
         # if self.debug:
         #     dpg.configure_app(manual_callback_management=True) #Cannot get non-manual callback to work with html_requests render
@@ -23,7 +26,7 @@ class GUI:
         dpg.set_exit_callback(self.endProgram)
 
     def run(self):
-        self.primaryWindow.newWindow()
+        self.sign_in.newWindow()
         dpg.setup_dearpygui()
         dpg.show_viewport()
         dpg.maximize_viewport()
