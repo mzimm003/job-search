@@ -147,9 +147,9 @@ class Backend:
             gen_id=Backend.GPG_KEY_ID)
     
     def extract_from_gpg_user_format(self, gpg_user:str):
-        return (gpg_user
-                .removeprefix("{}_".format(Backend.GPG_KEY_ID))
-                .removesuffix("_{}".format(Backend.GPG_KEY_ID)))
+        user = gpg_user.split("{}_".format(Backend.GPG_KEY_ID))[1]
+        user = user.split("_{}".format(Backend.GPG_KEY_ID))[0]
+        return user
 
     def create_user(self, user:str):
         save_dir = self.get_user_save_dir(user)
