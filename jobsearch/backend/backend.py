@@ -129,7 +129,7 @@ class Backend:
     
     def set_user(self, user:str):
         self.user = user
-        self.gpguser = "{} ({})".format(self.user, Backend.GPG_KEY_ID)
+        self.gpguser = self.gpg_user_format(self.user)
 
         save_dir = self.get_user_save_dir(self.user)
         
@@ -141,20 +141,34 @@ class Backend:
 
         self.portfolio = Portfolio.byDirectory(directory=save_dir)
 
+    def gpg_user_format(self, user:str):
+        return "{gen_id}_{user_id}_{gen_id}".format(
+            user_id=user,
+            gen_id=Backend.GPG_KEY_ID)
+    
+    def extract_from_gpg_user_format(self, gpg_user:str):
+        return (gpg_user
+                .removeprefix("{}_".format(Backend.GPG_KEY_ID))
+                .removesuffix("_{}".format(Backend.GPG_KEY_ID)))
+
     def create_user(self, user:str):
         save_dir = self.get_user_save_dir(user)
-        if not save_dir.exists():
-            save_dir.mkdir(parents=True)
+        if save_dir.exists() or self.gpg_user_exists(user):
+            raise ValueError("User already exists.")
+        save_dir.mkdir(parents=True)
         self.create_user_key(user)
         self.set_user(user=user)
 
+    def gpg_user_exists(self, user:str):
+        return len(self.gpg.list_keys(keys=self.gpg_user_format(user=user))) != 0
+
     def create_user_key(self, user:str):
         self.gpg.gen_key(
-            self.gpg.gen_key_input(name_real=user, name_comment=Backend.GPG_KEY_ID))
+            self.gpg.gen_key_input(name_real=self.gpg_user_format(user=user)))
 
     def get_users(self):
         return [
-            x.split(" ({}) ".format(Backend.GPG_KEY_ID))[0]
+            self.extract_from_gpg_user_format(x)
             for x
             in self.gpg.list_keys(keys=Backend.GPG_KEY_ID).uids]
 
@@ -251,7 +265,7 @@ class Backend:
 
     def delete_llm_model(self, model_name):
         self.llm.delete_model(name=model_name)
-
+        self.gpg.export_keys()
     def save_portfolio(self):
         save_dir = self.get_user_save_dir(self.user)
         if not save_dir.exists():
