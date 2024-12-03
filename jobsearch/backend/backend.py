@@ -266,6 +266,7 @@ class Backend:
     def delete_llm_model(self, model_name):
         self.llm.delete_model(name=model_name)
         self.gpg.export_keys()
+
     def save_portfolio(self):
         save_dir = self.get_user_save_dir(self.user)
         if not save_dir.exists():
