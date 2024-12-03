@@ -116,10 +116,10 @@ class Backend:
         self.user:str = None
         self.gpguser:str = None
 
-    def get_user_save_dir(self, user):
+    def get_user_save_dir(self, user:str):
         save_dir = Path(
             self.configuration.gett(ConfigurationElements.save_dir.name))
-        return save_dir / user
+        return save_dir / user.lower()
     
     def get_user_api_keys_path(self, user):
         save_dir = self.get_user_save_dir(user)
