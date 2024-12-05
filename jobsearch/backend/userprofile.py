@@ -2,78 +2,103 @@ import dataclasses
 import datetime
 from pathlib import Path
 import json
+import typing
 
 @dataclasses.dataclass
-class BasicInfo:
-    name:str =  ''
-    email:str =  ''
-    phone:str =  ''
-    location:str =  ''
-    linkedInLink:str =  ''
-    gitHubLink:str =  ''
-    website:str =  ''
-
-@dataclasses.dataclass
-class Job:
-    organization:str
-    position:str
-    location:str
-    start_date:datetime.date
-    end_date:datetime.date
-    contributions:list[str]
-
-@dataclasses.dataclass
-class WorkExperience:
-    jobs:list[Job]
-
-@dataclasses.dataclass
-class Project:
-    organization:str
-    name:str
-    start_date:datetime.date
-    end_date:datetime.date
-    contributions:list[str]
-
-@dataclasses.dataclass
-class Projects:
-    projects:list[Project]
-
-@dataclasses.dataclass
-class Credential:
-    institution:str
-    location:str
-    start_date:datetime.date
-    end_date:datetime.date
-    contributions:list[str]
-
-@dataclasses.dataclass
-class Education:
-    credentials:list[Credential]
-
-@dataclasses.dataclass
-class Skills:
-    skills:dict[str,list[str]]
-
-@dataclasses.dataclass
-class UserProfile:
-    summary:str = ""
-    basic_info:BasicInfo = BasicInfo()
-    work_experience:WorkExperience = WorkExperience()
-    projects:Projects = Projects()
-    education:Education = Education()
-    skills:Skills = Skills()
-
+class NestingDataClass:
     @classmethod
     def from_dict(cls, dct:dict):
         ret = {}
         for field in dataclasses.fields(cls):
-            inst = None
-            if field.type in [str]:
-                inst = field.type(dct[field.name])
-            else:
-                inst = field.type.from_dict(dct[field.name])
-            ret[field.name] = inst
+            ret[field.name] = NestingDataClass.instantiate(
+                field.type,
+                dct[field.name]
+                )
         return cls(**ret)
+    
+    @staticmethod
+    def instantiate(cls, inp):
+        inst = None
+        if isinstance(cls, type):
+            if issubclass(cls, NestingDataClass):
+                inst = cls.from_dict(inp)
+            elif dataclasses.is_dataclass(cls):
+                inst = cls(**inp)
+            else:
+                inst = cls(inp)
+        elif isinstance(cls, typing.GenericAlias):
+            if cls.__origin__ is dict:
+                inst = cls.__origin__(
+                    (k, NestingDataClass.instantiate(cls.__args__[-1], v))
+                    for k,v
+                    in inp.items())
+            else:
+                inst = cls.__origin__(
+                    NestingDataClass.instantiate(cls.__args__[-1], x)
+                    for x
+                    in inp)
+        return inst
+
+
+@dataclasses.dataclass
+class BasicInfo:
+    name:str = ""
+    email:str = ""
+    phone:str = ""
+    location:str = ""
+    linkedInLink:str = ""
+    gitHubLink:str = ""
+    website:str = ""
+
+@dataclasses.dataclass
+class Job:
+    organization:str = ""
+    position:str = ""
+    location:str = ""
+    start_date:datetime.date = datetime.date.today()
+    end_date:datetime.date = datetime.date.today()
+    contributions:list[str] = dataclasses.field(default_factory=list)
+
+@dataclasses.dataclass
+class WorkExperience(NestingDataClass):
+    jobs:list[Job] = dataclasses.field(default_factory=list)
+
+@dataclasses.dataclass
+class Project:
+    organization:str = ""
+    name:str = ""
+    start_date:datetime.date = datetime.date.today()
+    end_date:datetime.date = datetime.date.today()
+    contributions:list[str] = dataclasses.field(default_factory=list)
+
+@dataclasses.dataclass
+class Projects(NestingDataClass):
+    projects:list[Project] = dataclasses.field(default_factory=list)
+
+@dataclasses.dataclass
+class Credential:
+    institution:str = ""
+    location:str = ""
+    start_date:datetime.date = datetime.date.today()
+    end_date:datetime.date = datetime.date.today()
+    contributions:list[str] = dataclasses.field(default_factory=list)
+
+@dataclasses.dataclass
+class Education(NestingDataClass):
+    credentials:list[Credential] = dataclasses.field(default_factory=list)
+
+@dataclasses.dataclass
+class Skills:
+    skills:dict[str,list[str]] = dataclasses.field(default_factory=dict)
+
+@dataclasses.dataclass
+class UserProfile(NestingDataClass):
+    summary:str = ""
+    basic_info:BasicInfo = dataclasses.field(default_factory=BasicInfo)
+    work_experience:WorkExperience = dataclasses.field(default_factory=WorkExperience)
+    projects:Projects = dataclasses.field(default_factory=Projects)
+    education:Education = dataclasses.field(default_factory=Education)
+    skills:Skills = dataclasses.field(default_factory=Skills)
 
     @classmethod
     def from_json(cls, json_path):
