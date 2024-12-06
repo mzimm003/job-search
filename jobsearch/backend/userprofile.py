@@ -38,6 +38,9 @@ class NestingDataClass:
                     for x
                     in inp)
         return inst
+    
+    def is_empty(self):
+        return self == self.__class__()
 
 
 @dataclasses.dataclass
@@ -88,7 +91,7 @@ class Education(NestingDataClass):
     credentials:list[Credential] = dataclasses.field(default_factory=list)
 
 @dataclasses.dataclass
-class Skills:
+class Skills(NestingDataClass):
     skills:dict[str,list[str]] = dataclasses.field(default_factory=dict)
 
 @dataclasses.dataclass
