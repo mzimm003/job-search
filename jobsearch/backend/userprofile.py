@@ -96,12 +96,24 @@ class Skills(NestingDataClass):
 
 @dataclasses.dataclass
 class UserProfile(NestingDataClass):
+    FILENAME = "userprofile.json"
     summary:str = ""
     basic_info:BasicInfo = dataclasses.field(default_factory=BasicInfo)
     work_experience:WorkExperience = dataclasses.field(default_factory=WorkExperience)
     projects:Projects = dataclasses.field(default_factory=Projects)
     education:Education = dataclasses.field(default_factory=Education)
     skills:Skills = dataclasses.field(default_factory=Skills)
+
+    @classmethod
+    def by_directory(cls, directory):
+        directory = Path(directory)
+        profile_file = directory / cls.FILENAME
+        profile = None
+        if profile_file.exists():
+            profile = cls.from_json(profile_file)
+        else:
+            profile = cls()
+        return profile
 
     @classmethod
     def from_json(cls, json_path):

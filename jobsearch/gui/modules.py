@@ -13,6 +13,7 @@ from jobsearch.resumes.llm import LLM
 from jobsearch.resumes.pdf import pdf
 from jobsearch.search.utility import errorWindow, textWrapper
 from jobsearch.gui.menu import Menu
+from jobsearch.gui.userprofile import GUIUserProfile
 from jobsearch.gui.module import Module
 from typing import (
     List,
@@ -108,8 +109,7 @@ class GUIAddUser(Module):
     def cancel(self):
         dpg.delete_item(self.getKey(GUIAddUser.ELEMENTS.WINDOW))
 
-
-class GUIMain(Module):
+class GUIJobSearch(Module):
     class ELEMENTS(enum.Enum):
         WINDOW = enum.auto()
         PROFILES = enum.auto()
@@ -126,37 +126,34 @@ class GUIMain(Module):
         self.menu = Menu(backend=self.backend)
 
     def newWindow(self):
-        tag = self.getKey(GUIMain.ELEMENTS.WINDOW)
-        with dpg.window(tag=tag, on_close=self.cleanAliases):
-            self.menu.newWindow()
+        with dpg.tab(label="Job Search"):
             with dpg.group(horizontal=True):
                 with dpg.group(width=500):
                     dpg.add_text("Profiles")
                     dpg.add_listbox(
                         [k for k in self.backend.get_profile_names()],
-                        tag=self.getKey(GUIMain.ELEMENTS.PROFILES),
+                        tag=self.getKey(GUIJobSearch.ELEMENTS.PROFILES),
                         num_items=30)
                     dpg.add_button(
                         label="Access Profile",
-                        tag=self.getKey(GUIMain.ELEMENTS.OPENPROFILE),
+                        tag=self.getKey(GUIJobSearch.ELEMENTS.OPENPROFILE),
                         callback=self.openProfile)
                 with dpg.group():
                     dpg.add_text("Jobs")
                     with dpg.group(horizontal=True):
                         dpg.add_button(
                             label="Get All New Jobs",
-                            tag=self.getKey(GUIMain.ELEMENTS.ALLNEWJOBS),
+                            tag=self.getKey(GUIJobSearch.ELEMENTS.ALLNEWJOBS),
                             callback=self.getAllNewJobs)
                         dpg.add_button(
                             label="Detail",
-                            tag=self.getKey(GUIMain.ELEMENTS.JOBSDETAIL),
+                            tag=self.getKey(GUIJobSearch.ELEMENTS.JOBSDETAIL),
                             callback=self.openJobs)
                     with dpg.child_window(width=500, height=500):
-                        dpg.add_text("", wrap=800, tag=self.getKey(GUIMain.ELEMENTS.NEWJOBS))
-        dpg.set_primary_window(tag, True)
+                        dpg.add_text("", wrap=800, tag=self.getKey(GUIJobSearch.ELEMENTS.NEWJOBS))
 
     def openProfile(self, sender, app_data, user_data):
-        profile_name = dpg.get_value(self.getKey(GUIMain.ELEMENTS.PROFILES))
+        profile_name = dpg.get_value(self.getKey(GUIJobSearch.ELEMENTS.PROFILES))
         prof_mod = GUIProfile.fromProfileAndBackend(
             self.backend.select_profile_by_name(profile_name),
             backend=self.backend)
@@ -174,7 +171,28 @@ class GUIMain(Module):
             numNewJobs += len(p.getCurrentPosts())
             windowUpdate += '\n{}:\n\t'.format(p.getName())
             windowUpdate += '\n\t'.join(p.getCurrentPosts().keys())
-        dpg.set_value(self.getKey(GUIMain.ELEMENTS.NEWJOBS),'{} new jobs found:{}'.format(numNewJobs, windowUpdate))
+        dpg.set_value(self.getKey(GUIJobSearch.ELEMENTS.NEWJOBS),'{} new jobs found:{}'.format(numNewJobs, windowUpdate))
+
+class GUIMain(Module):
+    class ELEMENTS(enum.Enum):
+        WINDOW = enum.auto()
+        PROFILES = enum.auto()
+    
+    def __init__(
+            self,
+            backend
+            ) -> None:
+        super().__init__(backend=backend)
+        self.menu = Menu(backend=self.backend)
+
+    def newWindow(self):
+        tag = self.getKey(GUIMain.ELEMENTS.WINDOW)
+        with dpg.window(tag=tag, on_close=self.cleanAliases):
+            self.menu.newWindow()
+            with dpg.tab_bar():
+                GUIJobSearch(backend=self.backend).newWindow()
+                GUIUserProfile(backend=self.backend).newWindow()
+        dpg.set_primary_window(tag, True)
 
 class GUIProfile(Module):
     class OPTIONS:

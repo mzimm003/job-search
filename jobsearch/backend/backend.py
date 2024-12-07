@@ -1,5 +1,6 @@
 from jobsearch.search.profile import Portfolio
 from jobsearch.resumes.llm import LLM, LLMAPIOptions, Model
+from jobsearch.backend.userprofile import UserProfile
 
 import gnupg
 import configparser
@@ -112,6 +113,7 @@ class Backend:
                 vars=os.environ)
             )
         self.portfolio:Portfolio = None
+        self.user_profile:UserProfile = None
         self.llm:LLM = None
         self.user:str = None
         self.gpguser:str = None
@@ -140,6 +142,7 @@ class Backend:
         self.llm = LLM(config_json_path=llm_config_path)
 
         self.portfolio = Portfolio.byDirectory(directory=save_dir)
+        self.user_profile = UserProfile.by_directory(directory=save_dir)
 
     def gpg_user_format(self, user:str):
         return "{gen_id}_{user_id}_{gen_id}".format(
@@ -278,6 +281,9 @@ class Backend:
         port_file =  save_dir / self.portfolio.FILENAME
         self.portfolio.save(port_file)
 
+        user_prof_file =  save_dir / self.user_profile.FILENAME
+        self.user_profile.to_json(user_prof_file)
+
         self.llm.save_catalog()
 
     def quicksave_portfolio(self):
@@ -290,6 +296,9 @@ class Backend:
         
         port_file =  save_dir / ("~"+self.portfolio.FILENAME)
         self.portfolio.save(port_file)
+
+        user_prof_file =  save_dir / ("~"+self.user_profile.FILENAME)
+        self.user_profile.to_json(user_prof_file)
 
         self.llm.save_catalog()
 
