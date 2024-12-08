@@ -42,6 +42,36 @@ class NestingDataClass:
     def is_empty(self):
         return self == self.__class__()
 
+    def set(self, attribute:str, dct:dict):
+        obj = getattr(self, attribute)
+        for field in dataclasses.fields(obj):
+            if dataclasses.is_dataclass(field.type):
+                sub_obj = getattr(obj, field.name)
+                dct[field.name] = self._set_helper(sub_obj, dct[field.name])
+                    
+            elif isinstance(field.type, typing.GenericAlias):
+                if field.type.__origin__ is dict:
+                    dct[field.name] = field.type.__origin__(
+                        (k, self._set_helper(getattr(obj, field.name)[k], v))
+                        for k,v
+                        in dct[field.name].items())
+                else:
+                    dct[field.name] = field.type.__origin__(
+                        self._set_helper(getattr(obj, field.name)[i], x)
+                        for i,x
+                        in enumerate(dct[field.name]))
+        setattr(self, attribute, dataclasses.replace(obj, **dct))
+
+    def _set_helper(self, obj, dct):
+        ret = None
+        if isinstance(obj, NestingDataClass):
+            obj.set(dct)
+            ret = obj
+        else:
+            ret = dataclasses.replace(
+                obj,
+                **dct)
+        return ret
 
 @dataclasses.dataclass
 class BasicInfo:
@@ -49,9 +79,10 @@ class BasicInfo:
     email:str = ""
     phone:str = ""
     location:str = ""
-    linkedInLink:str = ""
-    gitHubLink:str = ""
+    linkedIn_link:str = ""
+    github_link:str = ""
     website:str = ""
+    summary:str = ""
 
 @dataclasses.dataclass
 class Job:
@@ -97,7 +128,6 @@ class Skills(NestingDataClass):
 @dataclasses.dataclass
 class UserProfile(NestingDataClass):
     FILENAME = "userprofile.json"
-    summary:str = ""
     basic_info:BasicInfo = dataclasses.field(default_factory=BasicInfo)
     work_experience:WorkExperience = dataclasses.field(default_factory=WorkExperience)
     projects:Projects = dataclasses.field(default_factory=Projects)
