@@ -181,6 +181,9 @@ class Backend:
         if not self.get_user_save_dir(self.user).exists():
             raise ValueError("Missing profile directory.")
 
+    def get_user_profile(self):
+        return self.user_profile
+
     def encrypt(self, data):
         return self.gpg.encrypt(
             data,

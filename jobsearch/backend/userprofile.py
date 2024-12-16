@@ -4,8 +4,85 @@ from pathlib import Path
 import json
 import typing
 
+def json_serializer(obj):
+    if isinstance(obj, (datetime.date)):
+        return {"__datetime.date__":obj.isoformat()}
+    raise TypeError ("Type %s not serializable" % type(obj))
+
+def json_deserializer(obj):
+    if "__datetime.date__" in obj:
+        return datetime.date.fromisoformat(obj["__datetime.date__"])
+    return obj
+
 @dataclasses.dataclass
-class NestingDataClass:
+class DataClass:
+    def as_dict(self):
+        return dataclasses.asdict(self)
+
+    def fields(self):
+        return dataclasses.fields(self)
+
+    def get(self, item:str):
+        return getattr(self, item)
+
+    def set(self, dct:dict):
+        for field in dataclasses.fields(self):
+            if field.name in dct:
+                sub_obj = getattr(self, field.name)
+                if dataclasses.is_dataclass(field.type):
+                    dct[field.name] = self._set_helper(sub_obj, dct[field.name])
+                        
+                elif isinstance(field.type, typing.GenericAlias):
+                    content_class = field.type.__args__[-1]
+                    if field.type.__origin__ is dict:
+                        dct[field.name] = field.type.__origin__(
+                            (
+                                k,
+                                self._set_helper(
+                                    sub_obj[k] if k in sub_obj else content_class(),
+                                    v))
+                            for k,v
+                            in dct[field.name].items())
+                    else:
+                        dct[field.name] = field.type.__origin__(
+                            self._set_helper(
+                                sub_obj[i] if i < len(sub_obj) else content_class(),
+                                x)
+                            for i,x
+                            in enumerate(dct[field.name]))
+        updated_instance = dataclasses.replace(self, **dct)
+        for field in dataclasses.fields(self):
+            setattr(
+                self,
+                field.name,
+                getattr(updated_instance, field.name))
+
+    def _set_helper(self, obj, data):
+        ret = obj
+        if isinstance(obj, NestingDataClass):
+            obj.set(data)
+            ret = obj
+        elif dataclasses.is_dataclass(obj):
+            ret = dataclasses.replace(
+                obj,
+                **data)
+        else:
+            if not data == {}:
+                if type(obj) != type(data):
+                    raise ValueError("Object {} cannot be replaced by data {}".format(obj, data))
+                ret = data
+        return ret
+
+    def add_new_list_item(self, list_name:str):
+        l = getattr(self, list_name)
+        self.set({list_name:[{} for i in range(len(l)+1)]})
+
+    def remove_list_item(self, list_name:str, idx:int):
+        l = getattr(self, list_name)
+        del l[idx]
+
+@dataclasses.dataclass
+class NestingDataClass(DataClass):
     @classmethod
     def from_dict(cls, dct:dict):
         ret = {}
@@ -39,42 +116,16 @@ class NestingDataClass:
                     in inp)
         return inst
     
+    def copy(self):
+        return self.from_dict(
+            dataclasses.asdict(self)
+        )
+    
     def is_empty(self):
         return self == self.__class__()
 
-    def set(self, attribute:str, dct:dict):
-        obj = getattr(self, attribute)
-        for field in dataclasses.fields(obj):
-            if dataclasses.is_dataclass(field.type):
-                sub_obj = getattr(obj, field.name)
-                dct[field.name] = self._set_helper(sub_obj, dct[field.name])
-                    
-            elif isinstance(field.type, typing.GenericAlias):
-                if field.type.__origin__ is dict:
-                    dct[field.name] = field.type.__origin__(
-                        (k, self._set_helper(getattr(obj, field.name)[k], v))
-                        for k,v
-                        in dct[field.name].items())
-                else:
-                    dct[field.name] = field.type.__origin__(
-                        self._set_helper(getattr(obj, field.name)[i], x)
-                        for i,x
-                        in enumerate(dct[field.name]))
-        setattr(self, attribute, dataclasses.replace(obj, **dct))
-
-    def _set_helper(self, obj, dct):
-        ret = None
-        if isinstance(obj, NestingDataClass):
-            obj.set(dct)
-            ret = obj
-        else:
-            ret = dataclasses.replace(
-                obj,
-                **dct)
-        return ret
-
 @dataclasses.dataclass
-class BasicInfo:
+class BasicInfo(DataClass):
     name:str = ""
     email:str = ""
     phone:str = ""
@@ -85,7 +136,7 @@ class BasicInfo:
     summary:str = ""
 
 @dataclasses.dataclass
-class Job:
+class Job(DataClass):
     organization:str = ""
     position:str = ""
     location:str = ""
@@ -98,7 +149,7 @@ class WorkExperience(NestingDataClass):
     jobs:list[Job] = dataclasses.field(default_factory=list)
 
 @dataclasses.dataclass
-class Project:
+class Project(DataClass):
     organization:str = ""
     name:str = ""
     start_date:datetime.date = datetime.date.today()
@@ -110,7 +161,7 @@ class Projects(NestingDataClass):
     projects:list[Project] = dataclasses.field(default_factory=list)
 
 @dataclasses.dataclass
-class Credential:
+class Credential(DataClass):
     institution:str = ""
     location:str = ""
     start_date:datetime.date = datetime.date.today()
@@ -122,8 +173,13 @@ class Education(NestingDataClass):
     credentials:list[Credential] = dataclasses.field(default_factory=list)
 
 @dataclasses.dataclass
+class SkillSet(DataClass):
+    topic:str = ""
+    skills:list[str] = dataclasses.field(default_factory=list)
+
+@dataclasses.dataclass
 class Skills(NestingDataClass):
-    skills:dict[str,list[str]] = dataclasses.field(default_factory=dict)
+    skill_sets:list[SkillSet] = dataclasses.field(default_factory=list)
 
 @dataclasses.dataclass
 class UserProfile(NestingDataClass):
@@ -151,7 +207,7 @@ class UserProfile(NestingDataClass):
         json_path = Path(json_path)
         if json_path.exists():
             with open(json_path, 'r') as f:
-                configs = json.load(f)
+                configs = json.load(f, object_hook=json_deserializer)
                 ret = cls.from_dict(configs)
         else:
             ret = cls(**dict())
@@ -159,4 +215,4 @@ class UserProfile(NestingDataClass):
 
     def to_json(self, json_path):
         with open(json_path, 'w') as f:
-            json.dump(dataclasses.asdict(self), f)
+            json.dump(dataclasses.asdict(self), f, default=json_serializer)
