@@ -5,7 +5,6 @@ from jobsearch.backend.userprofile import (
     UserProfile
 )
 import enum
-import contextlib
 import dearpygui.dearpygui as dpg
 import types
 import datetime
@@ -251,12 +250,6 @@ class ElementCollection:
     def label_from_user_profile_element(self, user_profile_element:str):
         return user_profile_element.capitalize().replace("_"," ")
 
-# def _get_value(x):
-#     if isinstance(x, GUIUserProfileUpdateModule):
-#         return x.as_dict()
-#     else:
-#         return dpg.get_value(x)
-
 class GUIUserProfileUpdateModule(Module):
     class ELEMENTS(enum.Enum):
         HANDLER_REG = enum.auto()
@@ -297,7 +290,6 @@ class GUIUserProfileUpdateModule(Module):
         )
         self.data.map_fields()
 
-    # @contextlib.contextmanager
     def newTab(self, label, **kwargs):
         tab = dpg.add_tab(
             label=label,
@@ -321,36 +313,6 @@ class GUIBasicInfo(GUIUserProfileUpdateModule):
         super().newWindow(
             label="Basic Information",
             **kwargs)
-    
-    # def add_str_element(
-    #         self,
-    #         user_profile_element:str,
-    #         ):
-    #     add_kwargs = dict()
-    #     if user_profile_element == "summary":
-    #         add_kwargs['multiline']=True
-    #         add_kwargs['height']=250
-    #     super().add_str_element(
-    #         user_profile_element=user_profile_element,
-    #         **add_kwargs
-    #     )
-
-# class GUIContributions(GUIUserProfileUpdateModule):
-#     def newWindow(self, label="", **kwargs):
-#         with dpg.group(**kwargs):
-#             self.map_fields()
-
-# class GUIWorkExperience(GUIUserProfileUpdateModule):
-#     def newWindow(self, **kwargs):
-#         with dpg.group(**kwargs):
-#             self.map_fields()
-        
-#     def add_list_element(
-#             self,
-#             user_profile_element: str,
-#             group: type[GUIUserProfileUpdateModule] = GUIContributions,
-#             **kwargs):
-#         return super().add_list_element(user_profile_element, group, **kwargs)
 
 class GUIWorkExperiences(GUIUserProfileUpdateModule):
     def newWindow(self, **kwargs):
@@ -375,14 +337,7 @@ class GUISkills(GUIUserProfileUpdateModule):
         super().newWindow(
             label="Skills",
             **kwargs)
-        
-    # def add_list_element(
-    #         self,
-    #         user_profile_element: str,
-    #         group: type[GUIUserProfileUpdateModule] = GUIWorkExperience,
-    #         **kwargs):
-    #     return super().add_list_element(user_profile_element, group, **kwargs)
-                
+
 class GUIUserProfile(Module):
     class ELEMENTS(enum.Enum):
         TABS = enum.auto()
