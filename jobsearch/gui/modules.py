@@ -156,7 +156,8 @@ class GUIJobSearch(Module):
         profile_name = dpg.get_value(self.getKey(GUIJobSearch.ELEMENTS.PROFILES))
         prof_mod = GUIProfile.fromProfileAndBackend(
             self.backend.select_profile_by_name(profile_name),
-            backend=self.backend)
+            backend=self.backend,
+            job_search=self)
         prof_mod.newWindow()
 
     def openJobs(self, sender, app_data, user_data):
@@ -184,14 +185,18 @@ class GUIMain(Module):
             ) -> None:
         super().__init__(backend=backend)
         self.menu = Menu(backend=self.backend)
+        self.job_search:GUIJobSearch = None
+        self.user_profile:GUIUserProfile = None
 
     def newWindow(self):
+        self.job_search = GUIJobSearch(backend=self.backend)
+        self.user_profile = GUIUserProfile(backend=self.backend)
         tag = self.getKey(GUIMain.ELEMENTS.WINDOW)
         with dpg.window(tag=tag, on_close=self.cleanAliases):
             self.menu.newWindow()
             with dpg.tab_bar():
-                GUIJobSearch(backend=self.backend).newWindow()
-                GUIUserProfile(backend=self.backend).newWindow()
+                self.job_search.newWindow()
+                self.user_profile.newWindow()
         dpg.set_primary_window(tag, True)
 
 class GUIProfile(Module):
@@ -238,13 +243,19 @@ class GUIProfile(Module):
     def __init__(
             self,
             profile,
-            backend) -> None:
+            backend,
+            job_search:GUIJobSearch) -> None:
         super().__init__(backend=backend)
         self.profile:Profile = profile
+        self.job_search = job_search
     
     @classmethod
-    def fromProfileAndBackend(cls, profile:Profile, backend:Backend):
-        return cls(profile=profile, backend=backend)
+    def fromProfileAndBackend(
+        cls,
+        profile:Profile,
+        backend:Backend,
+        job_search:GUIJobSearch):
+        return cls(profile=profile, backend=backend, job_search=job_search)
     
     def getKey(self, k, withCount=False):
         k = self.profile.getName()+str(k)
@@ -547,8 +558,13 @@ class GUIProfile(Module):
                 dpg.get_value(self.getKey(GUIProfile.ELEMENTS.PROFILENAME)))
         else:
             self.backend.add_profile(profile)
-        dpg.configure_item(GUIMain().getKey(GUIMain.ELEMENTS.PROFILES), items=[k for k in self.backend.get_profile_names()])
-        new_prof = GUIProfile.fromProfileAndBackend(profile=profile, backend=self.backend)
+        dpg.configure_item(
+            self.job_search.getKey(GUIMain.ELEMENTS.PROFILES),
+            items=[k for k in self.backend.get_profile_names()])
+        new_prof = GUIProfile.fromProfileAndBackend(
+            profile=profile,
+            backend=self.backend,
+            job_search=self.job_search)
         new_prof.newWindow()
         self.cleanAliases()
         dpg.delete_item(window_to_close)

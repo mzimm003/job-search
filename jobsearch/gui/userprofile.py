@@ -55,10 +55,14 @@ class Element:
             **kwargs,
             ):
         self.dpg_method = dpg_method
+        self.label = label
         self.dpg_id_num = self.dpg_method(
             label=label,
             default_value=default_value,
             **kwargs)
+
+    def configure(self, **kwargs):
+        dpg.configure_item(self.dpg_id_num, **kwargs)
 
     def get_tag(self):
         return self.dpg_id_num
@@ -94,7 +98,7 @@ class StrElement(Element):
             kwargs['multiline']=True
             kwargs['height']=250
         if label == "" and not 'width' in kwargs:
-            kwargs['width']=1300
+            kwargs['width']=-10
         super().__init__(
             dpg_method=dpg.add_input_text,
             default_value=default_value,
@@ -163,12 +167,13 @@ class ElementCollection:
             self,
             user_profile_element,
             default_value,
+            parent,
             label="",
             **kwargs,):
         element = Element.add(
             default_value=default_value,
             label=label,
-            parent=self.parent,
+            parent=parent,
             **kwargs
         )
         self.element_mapping[user_profile_element] = element
@@ -177,12 +182,13 @@ class ElementCollection:
             self,
             user_profile_element,
             data,
-            label=""):
-        parent = dpg.add_child_window(auto_resize_y=True, parent=self.parent)
-        dpg.add_text(label, parent=parent)
+            parent,
+            label="",):
+        sub_parent = dpg.add_child_window(auto_resize_y=True, parent=parent)
+        dpg.add_text(label, parent=sub_parent)
         collection = ElementCollection(
             user_profile_section=data,
-            parent=parent
+            parent=sub_parent
         )
         collection.map_fields()
         if collection.is_list:
@@ -192,7 +198,7 @@ class ElementCollection:
                 user_data=dict(
                     collection=collection,
                     collection_name=user_profile_element),
-                parent=parent)
+                parent=sub_parent)
         self.element_mapping[user_profile_element] = collection
 
     def append_element(self, sender, app_data, user_data):
@@ -201,18 +207,27 @@ class ElementCollection:
         self.user_profile_section.add_new_list_item(collection_name)
         collection_data = self.user_profile_section.get(collection_name)
         new_elem = collection_data[-1]
-        collection.map_field(
+        collection.map_removeable_field(
             typ=type(new_elem),
             name=len(collection_data),
-            data=new_elem
+            data=new_elem,
+            parent=collection.parent
         )
         dpg.move_item_down(sender)
 
+    def remove_element(self, sender, app_data, user_data):
+        parent = user_data['parent']
+        field_name = user_data['name']
+        # self.user_profile_section.add_new_list_item(collection_name)
+        del self.element_mapping[field_name]
+        dpg.delete_item(parent)
+        
     def map_field(
             self,
             typ:type,
             name:str,
             data,
+            parent,
             label:str="",
             **kwargs,
             ):
@@ -221,12 +236,38 @@ class ElementCollection:
                     user_profile_element=name,
                     default_value=data,
                     label=label,
+                    parent=parent,
                     **kwargs)
             else:
                 self.add_collection(
                     user_profile_element=name,
                     data=data,
-                    label = label)
+                    label=label,
+                    parent=parent)
+
+    def map_removeable_field(
+            self,
+            typ:type,
+            name:str,
+            data,
+            parent,
+            label:str="",
+            **kwargs,
+            ):
+        sub_parent = dpg.add_group(horizontal=True, parent=parent)
+        dpg.add_button(
+            label="-",
+            parent=sub_parent,
+            callback=self.remove_element,
+            user_data=dict(parent=sub_parent,
+                           name=name))
+        self.map_field(
+            typ=typ,
+            name=name,
+            data=data,
+            parent=sub_parent,
+            label=label,
+            **kwargs,)
 
     def map_fields(self):
         if dataclasses.is_dataclass(self.user_profile_section):
@@ -237,14 +278,16 @@ class ElementCollection:
                     typ=field.type,
                     name=field.name,
                     data=data,
-                    label=label
+                    label=label,
+                    parent=self.parent
                 )
         elif isinstance(self.user_profile_section, list):
             for i, field in enumerate(self.user_profile_section):
-                self.map_field(
+                self.map_removeable_field(
                     typ=type(field),
                     name=i,
-                    data=field
+                    data=field,
+                    parent=self.parent
                 )
 
     def label_from_user_profile_element(self, user_profile_element:str):
@@ -313,6 +356,12 @@ class GUIBasicInfo(GUIUserProfileUpdateModule):
         super().newWindow(
             label="Basic Information",
             **kwargs)
+        # with dpg.theme() as global_theme:
+        #     with dpg.theme_component(dpg.mvInputText):
+        #         dpg.add_theme_color(dpg.mvThemeCol_FrameBg, (140, 255, 23), category=dpg.mvThemeCat_Core)
+        #         dpg.add_theme_style(dpg.mvStyleVar_FrameWidth, 5, category=dpg.mvThemeCat_Core)
+
+        # dpg.bind_item_theme(self.tab, global_theme)
 
 class GUIWorkExperiences(GUIUserProfileUpdateModule):
     def newWindow(self, **kwargs):
@@ -359,7 +408,7 @@ class GUIUserProfile(Module):
         tab = tab(
             backend=self.backend,
             user_profile_section=getattr(
-                self.backend.get_user_profile(),
+                self.user_profile_copy,
                 user_profile_section),
             user_profile=self
             )
@@ -379,9 +428,9 @@ class GUIUserProfile(Module):
         self.set_active_tab()
         self.backend.get_user_profile().set(
             self.user_profile_copy.as_dict())
-        self.user_profile_copy:UserProfile = self.backend.get_user_profile().copy()
 
     def revert_changes(self):
+        self.user_profile_copy:UserProfile = self.backend.get_user_profile().copy()
         for user_profile_section, tab in self.tabs.items():
             dpg.delete_item(
                 tab.tab,
