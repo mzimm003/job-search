@@ -244,8 +244,8 @@ class Resume:
             phone = user_profile.basic_info.phone,
             location = user_profile.basic_info.location,
             websiteLink = user_profile.basic_info.website,
-            linkedInLink = user_profile.basic_info.linkedInLink,
-            gitHubLink = user_profile.basic_info.gitHubLink,
+            linkedInLink = user_profile.basic_info.linkedIn_link,
+            gitHubLink = user_profile.basic_info.github_link,
         )
         r.setWorkExperienceFromUserProfile(user_profile.work_experience)
         r.setProjectsFromUserProfile(user_profile.projects)
