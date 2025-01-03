@@ -1,5 +1,5 @@
-from jobsearch.gui.gui import GUI
-from jobsearch.backend.backend import Backend
+from .gui.gui import GUI
+from .backend.backend import Backend
 import argparse
 
 def main(debug=False, config_dir=None):

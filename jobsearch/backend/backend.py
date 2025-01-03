@@ -1,5 +1,6 @@
 from jobsearch.search.profile import Portfolio
 from jobsearch.resumes.llm import LLM, LLMAPIOptions, Model
+from jobsearch.backend.userprofile import UserProfile
 
 import gnupg
 import configparser
@@ -112,14 +113,15 @@ class Backend:
                 vars=os.environ)
             )
         self.portfolio:Portfolio = None
+        self.user_profile:UserProfile = None
         self.llm:LLM = None
         self.user:str = None
         self.gpguser:str = None
 
-    def get_user_save_dir(self, user):
+    def get_user_save_dir(self, user:str):
         save_dir = Path(
             self.configuration.gett(ConfigurationElements.save_dir.name))
-        return save_dir / user
+        return save_dir / user.lower()
     
     def get_user_api_keys_path(self, user):
         save_dir = self.get_user_save_dir(user)
@@ -129,7 +131,7 @@ class Backend:
     
     def set_user(self, user:str):
         self.user = user
-        self.gpguser = "{} ({})".format(self.user, Backend.GPG_KEY_ID)
+        self.gpguser = self.gpg_user_format(self.user)
 
         save_dir = self.get_user_save_dir(self.user)
         
@@ -140,21 +142,36 @@ class Backend:
         self.llm = LLM(config_json_path=llm_config_path)
 
         self.portfolio = Portfolio.byDirectory(directory=save_dir)
+        self.user_profile = UserProfile.by_directory(directory=save_dir)
+
+    def gpg_user_format(self, user:str):
+        return "{gen_id}_{user_id}_{gen_id}".format(
+            user_id=user,
+            gen_id=Backend.GPG_KEY_ID)
+    
+    def extract_from_gpg_user_format(self, gpg_user:str):
+        user = gpg_user.split("{}_".format(Backend.GPG_KEY_ID))[1]
+        user = user.split("_{}".format(Backend.GPG_KEY_ID))[0]
+        return user
 
     def create_user(self, user:str):
         save_dir = self.get_user_save_dir(user)
-        if not save_dir.exists():
-            save_dir.mkdir(parents=True)
+        if save_dir.exists() or self.gpg_user_exists(user):
+            raise ValueError("User already exists.")
+        save_dir.mkdir(parents=True)
         self.create_user_key(user)
         self.set_user(user=user)
 
+    def gpg_user_exists(self, user:str):
+        return len(self.gpg.list_keys(keys=self.gpg_user_format(user=user))) != 0
+
     def create_user_key(self, user:str):
         self.gpg.gen_key(
-            self.gpg.gen_key_input(name_real=user, name_comment=Backend.GPG_KEY_ID))
+            self.gpg.gen_key_input(name_real=self.gpg_user_format(user=user)))
 
     def get_users(self):
         return [
-            x.split(" ({}) ".format(Backend.GPG_KEY_ID))[0]
+            self.extract_from_gpg_user_format(x)
             for x
             in self.gpg.list_keys(keys=Backend.GPG_KEY_ID).uids]
 
@@ -163,6 +180,9 @@ class Backend:
             raise ValueError("User not found.")
         if not self.get_user_save_dir(self.user).exists():
             raise ValueError("Missing profile directory.")
+
+    def get_user_profile(self):
+        return self.user_profile
 
     def encrypt(self, data):
         return self.gpg.encrypt(
@@ -251,6 +271,7 @@ class Backend:
 
     def delete_llm_model(self, model_name):
         self.llm.delete_model(name=model_name)
+        self.gpg.export_keys()
 
     def save_portfolio(self):
         save_dir = self.get_user_save_dir(self.user)
@@ -262,6 +283,9 @@ class Backend:
         
         port_file =  save_dir / self.portfolio.FILENAME
         self.portfolio.save(port_file)
+
+        user_prof_file =  save_dir / self.user_profile.FILENAME
+        self.user_profile.to_json(user_prof_file)
 
         self.llm.save_catalog()
 
@@ -275,6 +299,9 @@ class Backend:
         
         port_file =  save_dir / ("~"+self.portfolio.FILENAME)
         self.portfolio.save(port_file)
+
+        user_prof_file =  save_dir / ("~"+self.user_profile.FILENAME)
+        self.user_profile.to_json(user_prof_file)
 
         self.llm.save_catalog()
 
