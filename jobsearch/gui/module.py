@@ -3,6 +3,7 @@ from jobsearch.backend.backend import Backend
 import abc
 import dearpygui.dearpygui as dpg
 
+
 class Module(abc.ABC):
     def __init__(self, backend:Backend) -> None:
         super().__init__()

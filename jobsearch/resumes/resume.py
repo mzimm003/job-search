@@ -8,14 +8,6 @@ import pickle
 from pathlib import Path
 from copy import deepcopy
 
-from jobsearch.backend.userprofile import (
-    UserProfile,
-    WorkExperience,
-    Projects,
-    Education,
-    Skills
-    )
-
 class ResumeRevision:
     def __init__(
             self,
@@ -90,7 +82,6 @@ class Resume:
             email:str = None,
             phone:str = None,
             location:str = None,
-            websiteLink:str=None,
             linkedInLink:str = None,
             gitHubLink:str = None,
             sections:List['Section'] = None,
@@ -101,7 +92,6 @@ class Resume:
         self.email:str = '' if email is None else email
         self.phone:str = '' if phone is None else phone
         self.location:str = '' if location is None else location
-        self.websiteLink:str = '' if websiteLink is None else websiteLink
         self.linkedInLink:str = '' if linkedInLink is None else linkedInLink
         self.gitHubLink:str = '' if gitHubLink is None else gitHubLink
         self.sections:List[Section] = [] if sections is None else sections
@@ -116,141 +106,6 @@ class Resume:
         r = None
         with open(path,'rb') as f:
             r = pickle.load(f)
-        return r
-
-    def setWorkExperienceFromUserProfile(self, work_experience:WorkExperience):
-        if not work_experience.is_empty():
-            orgs:list[Subsection] = []
-            prev_org = None
-            prev_end_date = None
-            for job in work_experience.jobs:
-                if job.organization == prev_org:
-                    orgs[-1].addSubSection(Subsection(
-                        subject=job.position,
-                        startDate=job.start_date,
-                        endDate=job.end_date,
-                        location=job.location,
-                        elements=job.contributions.copy(),
-                        type=Subsection.Types.POSITION
-                    ))
-                else:
-                    if orgs:
-                        orgs[-1].endDate = prev_end_date
-                    orgs.append(Subsection(
-                        subject=job.organization,
-                        startDate=job.start_date,
-                        location=job.location,
-                        elements=[Subsection(
-                            subject=job.position,
-                            startDate=job.start_date,
-                            endDate=job.end_date,
-                            location=job.location,
-                            elements=job.contributions.copy(),
-                            type=Subsection.Types.POSITION
-                        )],
-                        type=Subsection.Types.ORGANIZATION
-                        ))
-                prev_org = job.organization
-                prev_end_date = job.end_date
-            orgs[-1].endDate = prev_end_date
-            self.addSection(
-                Section(
-                    title="Work Experience",
-                    content=orgs,
-                )
-            )
-
-    def setProjectsFromUserProfile(self, projects:Projects):
-        if not projects.is_empty():
-            orgs:list[Subsection] = []
-            prev_org = None
-            prev_end_date = None
-            for project in projects.projects:
-                if project.organization == prev_org:
-                    orgs[-1].addSubSection(Subsection(
-                        subject=project.name,
-                        startDate=project.start_date,
-                        endDate=project.end_date,
-                        elements=project.contributions.copy(),
-                        type=Subsection.Types.POSITION
-                    ))
-                else:
-                    if orgs:
-                        orgs[-1].endDate = prev_end_date
-                    orgs.append(Subsection(
-                        subject=project.organization,
-                        startDate=project.start_date,
-                        elements=[Subsection(
-                            subject=project.name,
-                            startDate=project.start_date,
-                            endDate=project.end_date,
-                            elements=project.contributions.copy(),
-                            type=Subsection.Types.PROJECT
-                        )],
-                        type=Subsection.Types.ORGANIZATION
-                        ))
-                prev_org = project.organization
-                prev_end_date = project.end_date
-            orgs[-1].endDate = prev_end_date
-            self.addSection(
-                Section(
-                    title="Projects",
-                    content=orgs,
-                )
-            )
-
-    def setEducationFromUserProfile(self, education:Education):
-        if not education.is_empty():
-            orgs:list[Subsection] = []
-            for credential in education.credentials:
-                orgs.append(Subsection(
-                        subject=credential.institution,
-                        location=credential.location,
-                        startDate=credential.start_date,
-                        endDate=credential.end_date,
-                        elements=credential.contributions.copy(),
-                        type=Subsection.Types.SCHOOL
-                    ))
-            self.addSection(
-                Section(
-                    title="Education",
-                    content=orgs,
-                )
-            )
-
-    def setSkillsFromUserProfile(self, skills:Skills):
-        if not skills.is_empty():
-            orgs:list[Subsection] = []
-            for category, skls in skills.skills.items():
-                orgs.append(Subsection(
-                        subject=category,
-                        elements=skls.copy(),
-                        type=Subsection.Types.SKILL
-                    ))
-            self.addSection(
-                Section(
-                    title="Skills",
-                    content=orgs,
-                )
-            )
-
-    @classmethod
-    def fromUserProfile(cls, organization, job, user_profile:UserProfile) -> "Resume":
-        r = cls(
-            org = organization,
-            job = job,
-            name = user_profile.basic_info.name,
-            email = user_profile.basic_info.email,
-            phone = user_profile.basic_info.phone,
-            location = user_profile.basic_info.location,
-            websiteLink = user_profile.basic_info.website,
-            linkedInLink = user_profile.basic_info.linkedInLink,
-            gitHubLink = user_profile.basic_info.gitHubLink,
-        )
-        r.setWorkExperienceFromUserProfile(user_profile.work_experience)
-        r.setProjectsFromUserProfile(user_profile.projects)
-        r.setEducationFromUserProfile(user_profile.education)
-        r.setSkillsFromUserProfile(user_profile.skills)
         return r
 
     def saveResume(self):
